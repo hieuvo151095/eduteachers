@@ -1,8 +1,9 @@
 'use client'
 
-import { ChevronRight, RefreshCw } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
-// SVG icons for each entry point — simple line-art, B&W
+// ─── Entry-point icons (line-art, B&W) ──────────────────────────────────────
+
 function IconDiemDanh() {
   return (
     <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,15 +79,27 @@ function IconThucDon() {
   )
 }
 
+// ─── Entry point config ──────────────────────────────────────────────────────
+
 const ENTRY_POINTS = [
-  { id: 'diem-danh',  label: 'Điểm danh',          Icon: IconDiemDanh },
-  { id: 'danh-sach', label: 'Danh sách\nhọc sinh',  Icon: IconDanhSach },
-  { id: 'hoat-dong', label: 'Hoạt động',            Icon: IconHoatDong },
-  { id: 'bao-vang',  label: 'Báo vắng',             Icon: IconBaoVang },
-  { id: 'tkb',       label: 'Thời khoá\nbiểu',      Icon: IconThoiKhoa },
-  { id: 'bai-tap',   label: 'Bài tập',              Icon: IconBaiTap },
-  { id: 'thuc-don',  label: 'Thực đơn\nlớp',        Icon: IconThucDon },
+  { id: 'diem-danh',  label: 'Điểm danh',         Icon: IconDiemDanh },
+  { id: 'danh-sach', label: 'Danh sách\nhọc sinh', Icon: IconDanhSach },
+  { id: 'hoat-dong', label: 'Hoạt động',           Icon: IconHoatDong },
+  { id: 'bao-vang',  label: 'Báo vắng',            Icon: IconBaoVang },
+  { id: 'tkb',       label: 'Thời khoá\nbiểu',     Icon: IconThoiKhoa },
+  { id: 'bai-tap',   label: 'Bài tập',             Icon: IconBaiTap },
+  { id: 'thuc-don',  label: 'Thực đơn\nlớp',       Icon: IconThucDon },
 ]
+
+// ─── Attendance mock data ────────────────────────────────────────────────────
+
+const ATTENDANCE_ROWS = [
+  { label: 'Có mặt',    value: 5, total: 7 },
+  { label: 'Vắng mặt',  value: 2, total: 7 },
+  { label: 'Đi trễ',   value: 1, total: 7 },
+]
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 interface TeachersHomeScreenProps {
   onNavigateToThucDon: () => void
@@ -94,18 +107,60 @@ interface TeachersHomeScreenProps {
 
 export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
+    <div className="flex flex-col bg-gray-50 font-sans">
 
-      {/* Top header bar */}
-      <div className="flex items-center border-b border-gray-200 bg-white px-4 py-3">
-        <button className="mr-3 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300">
-          <ChevronRight size={16} className="rotate-180 text-gray-600" />
+      {/* ── Top header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
+            <ChevronRight size={14} className="rotate-180 text-gray-600" />
+          </div>
+          <span className="text-sm font-semibold text-black">ECO School Giao viên</span>
+        </div>
+        {/* Notification bell */}
+        <button className="relative flex h-8 w-8 items-center justify-center">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
+            3
+          </span>
         </button>
-        <span className="text-sm font-semibold text-black">ECO School Giao viên</span>
       </div>
 
-      {/* School card */}
-      <div className="mx-4 mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+      {/* ── Promo banner ───────────────────────────────────────────────────── */}
+      <div className="mx-4 mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        {/* Banner body */}
+        <div className="flex items-center gap-3 px-4 py-4">
+          {/* SSC logo placeholder */}
+          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-black bg-black text-white">
+            <span className="text-[10px] font-black leading-none tracking-widest">SSC</span>
+            <span className="mt-0.5 text-[8px] leading-none text-gray-300">S·smart card</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-[11px] font-semibold uppercase leading-tight text-gray-500">
+              Miễn phí dịch vụ
+            </p>
+            <p className="text-sm font-black uppercase leading-tight text-black">
+              Thanh toán học phí SSC
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-black">
+              <span className="font-black">1 năm</span>
+              <span className="ml-1 text-gray-500">· Áp dụng đến 31.05.2025</span>
+            </p>
+          </div>
+        </div>
+        {/* Banner CTA */}
+        <div className="border-t border-gray-100 px-4 py-2">
+          <button className="text-xs font-semibold text-black underline underline-offset-2">
+            Tìm hiểu thêm →
+          </button>
+        </div>
+      </div>
+
+      {/* ── School card ────────────────────────────────────────────────────── */}
+      <div className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -113,28 +168,29 @@ export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenPr
             </svg>
             <span className="text-sm font-bold text-black">Trường THCS Độc Lập</span>
           </div>
-          <button className="flex items-center gap-1 text-xs font-medium text-black">
-            Đổi trường <ChevronRight size={14} />
+          <button className="flex items-center gap-0.5 text-xs font-medium text-black">
+            Đổi trường <ChevronRight size={13} />
           </button>
         </div>
       </div>
 
-      {/* Class selector */}
-      <div className="mx-4 mt-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p className="mb-3 text-xs text-gray-500">Thầy/Cô đang ở lớp</p>
-        <div className="flex gap-3 overflow-x-auto pb-1">
+      {/* ── Class selector ─────────────────────────────────────────────────── */}
+      <div className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white px-4 py-3">
+        <p className="mb-2.5 text-xs text-gray-500">Thầy/Cô đang ở lớp</p>
+        <div className="flex gap-2.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+
           {/* Active class */}
-          <div className="flex min-w-[130px] shrink-0 items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2.5">
+          <div className="flex min-w-[136px] shrink-0 items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black">
               <svg viewBox="0 0 20 20" fill="white" className="h-4 w-4">
                 <path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v10h10V5H5zm2 2h6v1H7V7zm0 3h6v1H7v-1zm0 3h4v1H7v-1z" />
               </svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-bold leading-tight text-black">Lớp 6A2</p>
-              <p className="text-xs leading-tight text-gray-500">Lớp chủ nhiệm</p>
+              <p className="text-[10px] leading-tight text-gray-500">Lớp chủ nhiệm</p>
             </div>
-            <svg viewBox="0 0 16 16" className="ml-auto h-4 w-4 shrink-0 text-black" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg viewBox="0 0 16 16" className="ml-auto h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="3,8 7,12 13,4" />
             </svg>
           </div>
@@ -153,19 +209,19 @@ export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenPr
         </div>
       </div>
 
-      {/* Feature entry points */}
-      <div className="mx-4 mt-3 rounded-xl border border-gray-200 bg-white px-4 py-4">
-        <div className="grid grid-cols-4 gap-y-5">
+      {/* ── Feature entry points ───────────────────────────────────────────── */}
+      <div className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+        <div className="grid grid-cols-4 gap-x-2 gap-y-5">
           {ENTRY_POINTS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={id === 'thuc-don' ? onNavigateToThucDon : undefined}
-              className="flex flex-col items-center gap-1.5"
+              className="flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-black">
                 <Icon />
               </div>
-              <span className="whitespace-pre-line text-center text-xs leading-tight text-black">
+              <span className="whitespace-pre-line text-center text-[11px] leading-tight text-black">
                 {label}
               </span>
             </button>
@@ -173,21 +229,20 @@ export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenPr
         </div>
       </div>
 
-      {/* Điểm danh hôm nay */}
-      <div className="mx-4 mt-3 rounded-xl border border-gray-200 bg-white px-4 py-4">
-        <p className="mb-3 text-sm font-bold text-black">Điểm danh hôm nay</p>
-        <div className="flex items-end justify-between">
-          <div className="flex flex-col items-start">
-            {/* Arrow + label */}
-            <div className="flex items-center gap-1">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 19V5m-7 7 7-7 7 7" />
-              </svg>
-            </div>
-            <span className="mt-1 rounded-full border border-black px-3 py-0.5 text-xs font-semibold text-black">
-              Lớp Lớp 6A2
-            </span>
-          </div>
+      {/* ── Điểm danh hôm nay ──────────────────────────────────────────────── */}
+      <div className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-bold text-black">Điểm danh hôm nay</p>
+          <button className="text-xs font-medium text-black underline underline-offset-2">
+            Xem chi tiết
+          </button>
+        </div>
+
+        {/* Class + date row */}
+        <div className="mb-3 flex items-center justify-between">
+          <span className="rounded-full border border-black px-3 py-1 text-xs font-semibold text-black">
+            Lớp 6A2
+          </span>
           <div className="text-right">
             <p className="text-xs text-gray-500">Thứ 7, 27/06/2026</p>
             <p className="text-xs text-gray-700">
@@ -195,9 +250,34 @@ export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenPr
             </p>
           </div>
         </div>
+
+        {/* Attendance summary bar */}
+        <div className="mb-3 flex h-3 w-full overflow-hidden rounded-full">
+          {/* Present: 5/7 */}
+          <div className="h-full bg-black" style={{ width: `${(5 / 7) * 100}%` }} />
+          {/* Absent: 2/7 */}
+          <div className="h-full bg-gray-400" style={{ width: `${(2 / 7) * 100}%` }} />
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 divide-x divide-gray-200 rounded-xl border border-gray-200">
+          <div className="flex flex-col items-center py-2.5">
+            <span className="text-base font-black text-black">5</span>
+            <span className="text-[10px] text-gray-500">Có mặt</span>
+          </div>
+          <div className="flex flex-col items-center py-2.5">
+            <span className="text-base font-black text-black">2</span>
+            <span className="text-[10px] text-gray-500">Vắng mặt</span>
+          </div>
+          <div className="flex flex-col items-center py-2.5">
+            <span className="text-base font-black text-black">1</span>
+            <span className="text-[10px] text-gray-500">Đi trễ</span>
+          </div>
+        </div>
       </div>
 
-      <div className="h-6" />
+      {/* Bottom spacing */}
+      <div className="h-5" />
     </div>
   )
 }

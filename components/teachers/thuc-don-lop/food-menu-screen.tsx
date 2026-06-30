@@ -1,45 +1,38 @@
 'use client'
 
-import { ChevronLeft, Info } from 'lucide-react'
-import { type ClassInfo, type FoodMenu, type Ingredient } from '@/lib/mock-data'
+import { Info } from 'lucide-react'
+import type { FoodMenu } from '@/lib/mock-data'
 
 interface FoodMenuScreenProps {
-  selectedClass: ClassInfo
-  foodMenu: FoodMenu
+  className: string
   selectedDate: string
+  currentMenu: FoodMenu | undefined
   onClassSwitch: () => void
-  onDateChange: () => void
-  onIngredientClick: (ingredient: Ingredient) => void
+  onFoodClick: (food: any) => void
 }
 
 export function FoodMenuScreen({
-  selectedClass,
-  foodMenu,
+  className,
   selectedDate,
+  currentMenu,
   onClassSwitch,
-  onDateChange,
-  onIngredientClick,
+  onFoodClick,
 }: FoodMenuScreenProps) {
-  const hasSections = foodMenu.timeSections && foodMenu.timeSections.length > 0
+  const hasSections = currentMenu?.timeSections && currentMenu.timeSections.length > 0
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex flex-col bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <button className="p-1 text-gray-700 hover:text-black">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-lg font-bold text-black">Thực đơn lớp</h1>
-          <div className="w-6" />
-        </div>
+        <h1 className="text-lg font-bold text-black">Thực đơn lớp</h1>
       </div>
 
       {/* Class info and switcher */}
       <div className="border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-black">{selectedClass.name}</p>
+            <p className="text-sm font-semibold text-black">{className}</p>
+            <p className="text-xs text-gray-600">Ngày: {selectedDate}</p>
           </div>
           <button
             onClick={onClassSwitch}
@@ -50,26 +43,15 @@ export function FoodMenuScreen({
         </div>
       </div>
 
-      {/* Date selector */}
-      <div className="border-b border-gray-200 px-4 py-3">
-        <button
-          onClick={onDateChange}
-          className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-        >
-          <span>📅</span>
-          <span>Ngày: {selectedDate}</span>
-        </button>
-      </div>
-
       {/* Food items list */}
-      <div className="flex-1 overflow-y-auto">
-        {!hasSections || foodMenu.timeSections.every((s) => s.foods.length === 0) ? (
-          <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {!hasSections || currentMenu.timeSections.every((s) => s.foods.length === 0) ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
             <p className="text-sm text-gray-500">Không có dữ liệu thực đơn cho ngày này</p>
           </div>
         ) : (
-          <div className="space-y-4 px-4 py-4">
-            {foodMenu.timeSections.map((section) => {
+          <div className="space-y-4">
+            {currentMenu.timeSections.map((section) => {
               if (section.foods.length === 0) return null
 
               return (
@@ -85,11 +67,9 @@ export function FoodMenuScreen({
                       >
                         <p className="text-sm font-medium text-black">{food.name}</p>
                         <button
-                          onClick={() =>
-                            onIngredientClick(food.ingredients[0] || { id: '', name: '', company: '', datChuanStatus: 'đạt' })
-                          }
+                          onClick={() => onFoodClick(food)}
                           className="p-1 text-gray-600 hover:text-black"
-                          title="Xem thành phần"
+                          title="Xem nguyên liệu"
                         >
                           <Info size={18} />
                         </button>

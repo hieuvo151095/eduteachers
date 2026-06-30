@@ -29,17 +29,11 @@ export interface ClassInfo {
   name: string
 }
 
-// Mock classes - organized in rows of 3
+// Mock classes
 export const MOCK_CLASSES: ClassInfo[] = [
-  { id: 'class-1', name: 'Lớp Mầm' },
-  { id: 'class-2', name: 'Lớp Chòi' },
-  { id: 'class-3', name: 'Lớp Lá' },
-  { id: 'class-4', name: 'Lớp 1A' },
-  { id: 'class-5', name: 'Lớp 1B' },
-  { id: 'class-6', name: 'Lớp 2A' },
-  { id: 'class-7', name: 'Lớp 6A2' },
-  { id: 'class-8', name: '8A1' },
-  { id: 'class-9', name: '8A2' },
+  { id: 'class-1', name: 'Lớp 6A2' },
+  { id: 'class-2', name: '8A1' },
+  { id: 'class-3', name: '8A2' },
 ]
 
 // Mock ingredients data
@@ -131,139 +125,149 @@ const MOCK_INGREDIENTS: Record<string, Ingredient[]> = {
   ],
 }
 
-// Helper function to generate menu for all classes and dates
-const generateMenuForDate = (offset: number): FoodMenu => ({
-  date: new Date(2026, 5, 30 + offset).toLocaleDateString('vi-VN'),
-  timeSections: [
-    {
-      period: 'Buổi sáng',
-      foods: [
-        {
-          id: `food-${offset}-1`,
-          name: offset % 2 === 0 ? 'Cháo gà' : 'Bánh mì',
-          ingredients: offset % 2 === 0 ? MOCK_INGREDIENTS['cháo gà'] : MOCK_INGREDIENTS['bánh mì'],
-        },
-        {
-          id: `food-${offset}-2`,
-          name: offset % 3 === 0 ? 'Sữa tươi' : 'Bánh mì',
-          ingredients: offset % 3 === 0 ? MOCK_INGREDIENTS['sữa tươi'] : MOCK_INGREDIENTS['bánh mì'],
-        },
-      ],
-    },
-    {
-      period: 'Buổi trưa',
-      foods: [
-        {
-          id: `food-${offset}-3`,
-          name: 'Cơm trắng',
-          ingredients: MOCK_INGREDIENTS['cơm trắng'],
-        },
-        {
-          id: `food-${offset}-4`,
-          name: offset % 2 === 0 ? 'Canh cá' : 'Rau muống xào',
-          ingredients: offset % 2 === 0 ? MOCK_INGREDIENTS['canh cá'] : MOCK_INGREDIENTS['rau muống xào'],
-        },
-        {
-          id: `food-${offset}-5`,
-          name: offset % 3 === 0 ? 'Trứng cuộn' : 'Rau muống xào',
-          ingredients: offset % 3 === 0 ? MOCK_INGREDIENTS['trứng cuộn'] : MOCK_INGREDIENTS['rau muống xào'],
-        },
-      ],
-    },
-    {
-      period: 'Buổi xế',
-      foods: [
-        {
-          id: `food-${offset}-6`,
-          name: 'Trái cây tươi',
-          ingredients: MOCK_INGREDIENTS['trái cây tươi'],
-        },
-      ],
-    },
-  ],
-})
-
-// Generate menus for all dates and classes
-export const MOCK_FOOD_MENUS: Record<string, Record<string, FoodMenu>> = {
+// Mock food menus for each class
+export const MOCK_FOOD_MENUS: Record<string, FoodMenu> = {
   'class-1': {
-    // Lớp Mầm
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 7),
-      ])
-    ),
+    // Lớp 6A2
+    date: '30/06/2026',
+    timeSections: [
+      {
+        period: 'Buổi sáng',
+        foods: [
+          {
+            id: 'food-1',
+            name: 'Cháo gà',
+            ingredients: MOCK_INGREDIENTS['cháo gà'],
+          },
+          {
+            id: 'food-2',
+            name: 'Bánh mì',
+            ingredients: MOCK_INGREDIENTS['bánh mì'],
+          },
+          {
+            id: 'food-3',
+            name: 'Sữa tươi',
+            ingredients: MOCK_INGREDIENTS['sữa tươi'],
+          },
+        ],
+      },
+      {
+        period: 'Buổi trưa',
+        foods: [
+          {
+            id: 'food-4',
+            name: 'Cơm trắng',
+            ingredients: MOCK_INGREDIENTS['cơm trắng'],
+          },
+          {
+            id: 'food-5',
+            name: 'Canh cá',
+            ingredients: MOCK_INGREDIENTS['canh cá'],
+          },
+          {
+            id: 'food-6',
+            name: 'Rau muống xào',
+            ingredients: MOCK_INGREDIENTS['rau muống xào'],
+          },
+        ],
+      },
+      {
+        period: 'Buổi xế',
+        foods: [
+          {
+            id: 'food-7',
+            name: 'Trứng cuộn',
+            ingredients: MOCK_INGREDIENTS['trứng cuộn'],
+          },
+          {
+            id: 'food-8',
+            name: 'Trái cây tươi',
+            ingredients: MOCK_INGREDIENTS['trái cây tươi'],
+          },
+        ],
+      },
+    ],
   },
   'class-2': {
-    // Lớp Chòi
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 6),
-      ])
-    ),
+    // 8A1
+    date: '30/06/2026',
+    timeSections: [
+      {
+        period: 'Buổi sáng',
+        foods: [
+          {
+            id: 'food-9',
+            name: 'Cơm trắng',
+            ingredients: MOCK_INGREDIENTS['cơm trắng'],
+          },
+          {
+            id: 'food-10',
+            name: 'Trứng cuộn',
+            ingredients: MOCK_INGREDIENTS['trứng cuộn'],
+          },
+        ],
+      },
+      {
+        period: 'Buổi trưa',
+        foods: [
+          {
+            id: 'food-11',
+            name: 'Cháo gà',
+            ingredients: MOCK_INGREDIENTS['cháo gà'],
+          },
+          {
+            id: 'food-12',
+            name: 'Rau muống xào',
+            ingredients: MOCK_INGREDIENTS['rau muống xào'],
+          },
+        ],
+      },
+    ],
   },
   'class-3': {
-    // Lớp Lá
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 5),
-      ])
-    ),
-  },
-  'class-4': {
-    // Lớp 1A
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 4),
-      ])
-    ),
-  },
-  'class-5': {
-    // Lớp 1B
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 3),
-      ])
-    ),
-  },
-  'class-6': {
-    // Lớp 2A
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 2),
-      ])
-    ),
-  },
-  'class-7': {
-    // Lớp 6A2
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i - 1),
-      ])
-    ),
-  },
-  'class-8': {
-    // 8A1
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i),
-      ])
-    ),
-  },
-  'class-9': {
     // 8A2
-    ...Object.fromEntries(
-      Array.from({ length: 15 }, (_, i) => [
-        new Date(2026, 5, 30 + (i - 7)).toLocaleDateString('vi-VN'),
-        generateMenuForDate(i + 1),
-      ])
-    ),
+    date: '30/06/2026',
+    timeSections: [
+      {
+        period: 'Buổi sáng',
+        foods: [
+          {
+            id: 'food-13',
+            name: 'Bánh mì',
+            ingredients: MOCK_INGREDIENTS['bánh mì'],
+          },
+          {
+            id: 'food-14',
+            name: 'Sữa tươi',
+            ingredients: MOCK_INGREDIENTS['sữa tươi'],
+          },
+        ],
+      },
+      {
+        period: 'Buổi trưa',
+        foods: [
+          {
+            id: 'food-15',
+            name: 'Canh cá',
+            ingredients: MOCK_INGREDIENTS['canh cá'],
+          },
+          {
+            id: 'food-16',
+            name: 'Cơm trắng',
+            ingredients: MOCK_INGREDIENTS['cơm trắng'],
+          },
+        ],
+      },
+      {
+        period: 'Buổi xế',
+        foods: [
+          {
+            id: 'food-17',
+            name: 'Trái cây tươi',
+            ingredients: MOCK_INGREDIENTS['trái cây tươi'],
+          },
+        ],
+      },
+    ],
   },
 }

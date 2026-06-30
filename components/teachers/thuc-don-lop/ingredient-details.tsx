@@ -1,84 +1,92 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
-import { type Ingredient } from '@/lib/mock-data'
+import type { Ingredient } from '@/lib/mock-data'
 
 interface IngredientDetailsProps {
   ingredient: Ingredient
-  onClose: () => void
+  /** Called when the user presses the back arrow — returns to ingredient list */
+  onBack: () => void
 }
 
-export function IngredientDetails({ ingredient, onClose }: IngredientDetailsProps) {
+export function IngredientDetails({ ingredient, onBack }: IngredientDetailsProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50">
-      <div className="absolute bottom-0 left-0 right-0 max-w-sm rounded-t-2xl bg-white p-6">
+    <div className="fixed inset-0 z-60 flex items-end bg-black/40">
+      <div className="w-full max-w-sm mx-auto rounded-t-2xl bg-white px-5 py-5">
+        {/* Handle bar */}
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-300" />
+
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-black">Nguồn gốc thực phẩm</h2>
+        <div className="mb-5 flex items-center gap-3">
           <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-gray-600 hover:bg-gray-100 hover:text-black"
+            onClick={onBack}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-100"
           >
-            ✕
+            <ChevronLeft size={16} />
           </button>
+          <h2 className="text-base font-bold text-black">Nguồn gốc thực phẩm</h2>
         </div>
 
-        {/* Ingredient info */}
-        <div className="mb-6 space-y-4">
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-600">Tên nguyên liệu</p>
-            <p className="mt-1 text-sm font-medium text-black">{ingredient.name}</p>
+        {/* Content */}
+        <div className="space-y-4">
+          {/* Ingredient name */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Tên nguyên liệu</p>
+            <p className="mt-1 text-sm font-bold text-black">{ingredient.name}</p>
           </div>
 
-          <div className="rounded-lg bg-gray-100 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-600">Mã sản phẩm</p>
-            <div className="mt-2 space-y-2">
-              {ingredient.gtin && (
-                <div>
-                  <p className="text-xs text-gray-700">GTIN:</p>
-                  <p className="font-mono text-sm font-semibold text-black">{ingredient.gtin}</p>
-                </div>
-              )}
-              {ingredient.soLo && (
-                <div>
-                  <p className="text-xs text-gray-700">Số lô:</p>
-                  <p className="font-mono text-sm font-semibold text-black">{ingredient.soLo}</p>
-                </div>
-              )}
-              {ingredient.maTem && (
-                <div>
-                  <p className="text-xs text-gray-700">Mã tem nội bộ:</p>
-                  <p className="font-mono text-sm font-semibold text-black">{ingredient.maTem}</p>
-                </div>
-              )}
-            </div>
+          {/* Product code */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Mã sản phẩm</p>
+            {ingredient.gtin && (
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-gray-500">GTIN</span>
+                <span className="font-mono text-xs font-bold text-black">{ingredient.gtin}</span>
+              </div>
+            )}
+            {ingredient.soLo && (
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Số lô</span>
+                <span className="font-mono text-xs font-bold text-black">{ingredient.soLo}</span>
+              </div>
+            )}
+            {ingredient.maTem && (
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Mã tem nội bộ</span>
+                <span className="font-mono text-xs font-bold text-black">{ingredient.maTem}</span>
+              </div>
+            )}
           </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-600">Công ty sản xuất</p>
+          {/* Company */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Đơn vị sản xuất</p>
             <p className="mt-1 text-sm font-medium text-black">{ingredient.company}</p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2">
-            <span className="text-xs font-semibold uppercase text-gray-600">Đạt chuẩn</span>
+          {/* Standard badge */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Tiêu chuẩn chất lượng</p>
             <span
-              className={`rounded-full px-2 py-1 text-xs font-semibold ${
+              className={`rounded-full px-3 py-1 text-xs font-bold ${
                 ingredient.datChuanStatus === 'đạt'
                   ? 'bg-black text-white'
-                  : 'bg-gray-400 text-white'
+                  : 'bg-gray-300 text-gray-700'
               }`}
             >
-              {ingredient.datChuanStatus === 'đạt' ? '✓ Đạt' : '✗ Không đạt'}
+              {ingredient.datChuanStatus === 'đạt' ? 'Dat chuan' : 'Khong dat'}
             </span>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full rounded-lg bg-black px-4 py-3 font-semibold text-white hover:bg-gray-800"
-        >
-          Đóng
-        </button>
+        <div className="mt-5">
+          <button
+            onClick={onBack}
+            className="w-full rounded-xl border border-gray-300 py-3 text-sm font-semibold text-black hover:bg-gray-50"
+          >
+            Quay lại
+          </button>
+        </div>
       </div>
     </div>
   )

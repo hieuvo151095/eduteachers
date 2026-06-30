@@ -4,69 +4,100 @@ import { useState } from 'react'
 import {
   MOCK_CLASSES,
   MOCK_FOOD_MENUS,
+  TODAY_STR,
   type ClassInfo,
-  type FoodMenu,
+  type FoodItem,
   type Ingredient,
 } from '@/lib/mock-data'
 import { FoodMenuScreen } from './food-menu-screen'
 import { ClassSwitcher } from './class-switcher'
-import { DatePicker } from './date-picker'
+import { DateCarousel } from './date-carousel'
+import { IngredientListModal } from './ingredient-list-modal'
 import { IngredientDetails } from './ingredient-details'
 
-export function ThucDonLopApp() {
-  const [currentScreen, setCurrentScreen] = useState<'menu' | 'classSwitch' | 'datePicker'>(
-    'menu'
+interface ThucDonLopAppProps {
+  onBack: () => void
+}
+
+export function ThucDonLopApp({ onBack }: ThucDonLopAppProps) {
+  // Default to Lớp 6A2 (class-7 — homeroom)
+  const [selectedClass, setSelectedClass] = useState<ClassInfo>(
+    MOCK_CLASSES.find((c) => c.id === 'class-7') ?? MOCK_CLASSES[0]
   )
-  const [selectedClass, setSelectedClass] = useState<ClassInfo>(MOCK_CLASSES[0])
-  const [selectedDate, setSelectedDate] = useState<string>('30/06/2026')
+  const [selectedDate, setSelectedDate] = useState<string>(TODAY_STR)
+
+  // Modals
+  const [showClassSwitcher, setShowClassSwitcher] = useState(false)
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null)
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null)
-  const [showIngredientDetails, setShowIngredientDetails] = useState(false)
 
-  const foodMenu: FoodMenu = MOCK_FOOD_MENUS[selectedClass.id] || MOCK_FOOD_MENUS['class-1']
+  const classMenusByDate = MOCK_FOOD_MENUS[selectedClass.id] ?? {}
+  const foodMenu = classMenusByDate[selectedDate]
 
-  const handleClassSwitch = (classInfo: ClassInfo) => {
-    setSelectedClass(classInfo)
-    setCurrentScreen('menu')
+  const handleClassSelect = (cls: ClassInfo) => {
+    setSelectedClass(cls)
+    setShowClassSwitcher(false)
   }
 
-  const handleDateSelect = (date: string) => {
-    setSelectedDate(date)
-    setCurrentScreen('menu')
+  const handleFoodClick = (food: FoodItem) => {
+    setSelectedFood(food)
+    setSelectedIngredient(null)
   }
 
-  const handleShowIngredient = (ingredient: Ingredient) => {
+  const handleIngredientClick = (ingredient: Ingredient) => {
     setSelectedIngredient(ingredient)
-    setShowIngredientDetails(true)
   }
 
-  const handleCloseIngredient = () => {
-    setShowIngredientDetails(false)
+  const handleBackFromDetails = () => {
+    setSelectedIngredient(null)
+    // selectedFood stays open — ingredient list reappears
+  }
+
+  const handleCloseIngredientList = () => {
+    setSelectedFood(null)
     setSelectedIngredient(null)
   }
 
   return (
-    <div className="relative flex h-screen w-full max-w-sm flex-col bg-white">
-      {currentScreen === 'menu' && (
-        <FoodMenuScreen
-          selectedClass={selectedClass}
-          foodMenu={foodMenu}
-          selectedDate={selectedDate}
-          onClassSwitch={() => setCurrentScreen('classSwitch')}
-          onDateChange={() => setCurrentScreen('datePicker')}
-          onIngredientClick={handleShowIngredient}
+    <div className="relative flex flex-col bg-white">
+      {/* Main content */}
+      <FoodMenuScreen
+        selectedClass={selectedClass}
+        foodMenu={foodMenu}
+        selectedDate={selectedDate}
+        onBack={onBack}
+        onClassSwitch={() => setShowClassSwitcher(true)}
+        onFoodClick={handleFoodClick}
+      />
+
+      {/* Date carousel — sticky at bottom of the food list */}
+      <DateCarousel selectedDate={selectedDate} onDateChange={setSelectedDate} />
+
+      {/* Class switcher bottom sheet */}
+      {showClassSwitcher && (
+        <ClassSwitcher
+          selectedClassId={selectedClass.id}
+          classes={MOCK_CLASSES}
+          onSelect={handleClassSelect}
+          onClose={() => setShowClassSwitcher(false)}
         />
       )}
 
-      {currentScreen === 'classSwitch' && (
-        <ClassSwitcher classes={MOCK_CLASSES} onSelect={handleClassSwitch} />
+      {/* Ingredient list bottom sheet (level 1) — only visible when no ingredient selected */}
+      {selectedFood && !selectedIngredient && (
+        <IngredientListModal
+          food={selectedFood}
+          onIngredientClick={handleIngredientClick}
+          onClose={handleCloseIngredientList}
+        />
       )}
 
-      {currentScreen === 'datePicker' && (
-        <DatePicker onDateSelect={handleDateSelect} />
-      )}
-
-      {showIngredientDetails && selectedIngredient && (
-        <IngredientDetails ingredient={selectedIngredient} onClose={handleCloseIngredient} />
+      {/* Ingredient source details (level 2) */}
+      {selectedIngredient && (
+        <IngredientDetails
+          ingredient={selectedIngredient}
+          onBack={handleBackFromDetails}
+        />
       )}
     </div>
   )

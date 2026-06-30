@@ -1,0 +1,203 @@
+'use client'
+
+import { ChevronRight, RefreshCw } from 'lucide-react'
+
+// SVG icons for each entry point — simple line-art, B&W
+function IconDiemDanh() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="6" width="24" height="28" rx="3" />
+      <line x1="13" y1="15" x2="27" y2="15" />
+      <line x1="13" y1="20" x2="27" y2="20" />
+      <line x1="13" y1="25" x2="21" y2="25" />
+      <polyline points="22,27 25,30 31,23" />
+    </svg>
+  )
+}
+
+function IconDanhSach() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="16" cy="14" r="5" />
+      <path d="M6 34c0-6 4-10 10-10h8c6 0 10 4 10 10" />
+    </svg>
+  )
+}
+
+function IconHoatDong() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="8" width="24" height="24" rx="4" />
+      <path d="M15 20l4 4 6-8" />
+    </svg>
+  )
+}
+
+function IconBaoVang() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 7v3M10 11l2 2M8 20H5M30 11l-2 2M32 20h3" />
+      <path d="M20 10a10 10 0 0 1 10 10c0 4-2 7-4 9H14c-2-2-4-5-4-9a10 10 0 0 1 10-10z" />
+      <line x1="16" y1="33" x2="24" y2="33" />
+    </svg>
+  )
+}
+
+function IconThoiKhoa() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="9" width="26" height="24" rx="3" />
+      <line x1="7" y1="16" x2="33" y2="16" />
+      <line x1="14" y1="5" x2="14" y2="13" />
+      <line x1="26" y1="5" x2="26" y2="13" />
+      <line x1="13" y1="22" x2="27" y2="22" />
+      <line x1="13" y1="28" x2="22" y2="28" />
+    </svg>
+  )
+}
+
+function IconBaiTap() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 8h16a2 2 0 0 1 2 2v22a2 2 0 0 1-2 2H12a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z" />
+      <line x1="15" y1="16" x2="25" y2="16" />
+      <line x1="15" y1="21" x2="25" y2="21" />
+      <line x1="15" y1="26" x2="20" y2="26" />
+    </svg>
+  )
+}
+
+function IconThucDon() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 8v8c0 3 2 5 6 6v10" />
+      <path d="M14 8c0 0-3 2-3 6" />
+      <path d="M14 8c0 0 3 2 3 6" />
+      <path d="M26 8c0 0 0 5 0 8s-2 4-2 4v12" />
+    </svg>
+  )
+}
+
+const ENTRY_POINTS = [
+  { id: 'diem-danh',  label: 'Điểm danh',          Icon: IconDiemDanh },
+  { id: 'danh-sach', label: 'Danh sách\nhọc sinh',  Icon: IconDanhSach },
+  { id: 'hoat-dong', label: 'Hoạt động',            Icon: IconHoatDong },
+  { id: 'bao-vang',  label: 'Báo vắng',             Icon: IconBaoVang },
+  { id: 'tkb',       label: 'Thời khoá\nbiểu',      Icon: IconThoiKhoa },
+  { id: 'bai-tap',   label: 'Bài tập',              Icon: IconBaiTap },
+  { id: 'thuc-don',  label: 'Thực đơn\nlớp',        Icon: IconThucDon },
+]
+
+interface TeachersHomeScreenProps {
+  onNavigateToThucDon: () => void
+}
+
+export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenProps) {
+  return (
+    <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
+
+      {/* Top header bar */}
+      <div className="flex items-center border-b border-gray-200 bg-white px-4 py-3">
+        <button className="mr-3 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300">
+          <ChevronRight size={16} className="rotate-180 text-gray-600" />
+        </button>
+        <span className="text-sm font-semibold text-black">ECO School Giao viên</span>
+      </div>
+
+      {/* School card */}
+      <div className="mx-4 mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M3 21h18M6 21V7l6-4 6 4v14M9 21v-6h6v6" />
+            </svg>
+            <span className="text-sm font-bold text-black">Trường THCS Độc Lập</span>
+          </div>
+          <button className="flex items-center gap-1 text-xs font-medium text-black">
+            Đổi trường <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Class selector */}
+      <div className="mx-4 mt-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <p className="mb-3 text-xs text-gray-500">Thầy/Cô đang ở lớp</p>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {/* Active class */}
+          <div className="flex min-w-[130px] shrink-0 items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black">
+              <svg viewBox="0 0 20 20" fill="white" className="h-4 w-4">
+                <path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v10h10V5H5zm2 2h6v1H7V7zm0 3h6v1H7v-1zm0 3h4v1H7v-1z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-bold leading-tight text-black">Lớp 6A2</p>
+              <p className="text-xs leading-tight text-gray-500">Lớp chủ nhiệm</p>
+            </div>
+            <svg viewBox="0 0 16 16" className="ml-auto h-4 w-4 shrink-0 text-black" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="3,8 7,12 13,4" />
+            </svg>
+          </div>
+
+          {/* Other classes */}
+          {['8A1', '8A2'].map((name) => (
+            <div key={name} className="flex min-w-[80px] shrink-0 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-500">
+                  <path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v10h10V5H5zm2 2h6v1H7V7zm0 3h6v1H7v-1zm0 3h4v1H7v-1z" />
+                </svg>
+              </div>
+              <p className="text-xs font-semibold text-black">{name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Feature entry points */}
+      <div className="mx-4 mt-3 rounded-xl border border-gray-200 bg-white px-4 py-4">
+        <div className="grid grid-cols-4 gap-y-5">
+          {ENTRY_POINTS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={id === 'thuc-don' ? onNavigateToThucDon : undefined}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-black">
+                <Icon />
+              </div>
+              <span className="whitespace-pre-line text-center text-xs leading-tight text-black">
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Điểm danh hôm nay */}
+      <div className="mx-4 mt-3 rounded-xl border border-gray-200 bg-white px-4 py-4">
+        <p className="mb-3 text-sm font-bold text-black">Điểm danh hôm nay</p>
+        <div className="flex items-end justify-between">
+          <div className="flex flex-col items-start">
+            {/* Arrow + label */}
+            <div className="flex items-center gap-1">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 19V5m-7 7 7-7 7 7" />
+              </svg>
+            </div>
+            <span className="mt-1 rounded-full border border-black px-3 py-0.5 text-xs font-semibold text-black">
+              Lớp Lớp 6A2
+            </span>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">Thứ 7, 27/06/2026</p>
+            <p className="text-xs text-gray-700">
+              Sĩ số: <span className="font-bold text-black">7</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="h-6" />
+    </div>
+  )
+}

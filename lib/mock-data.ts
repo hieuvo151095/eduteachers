@@ -303,11 +303,18 @@ const STUDENT_NAMES = [
   'Raman Phạm', 'Sơn Thị Quỳnh', 'Tô Văn Ronaldo', 'Ưu Hữu Sơn', 'Võ Minh Tân',
 ]
 
+// Deterministic 8-digit student code from classId + index
+function make8DigitCode(classId: string, idx: number): string {
+  const seed = classId.replace(/\D/g, '') || '7'
+  const base = parseInt(seed) * 1000000 + idx * 37 * 1000 + 10000000
+  return String(base % 100000000).padStart(8, '0')
+}
+
 export function generateStudentsForClass(classId: string): Student[] {
   return STUDENT_NAMES.map((name, idx) => ({
     id: `student-${classId}-${idx}`,
     name,
-    studentCode: `${classId}-${idx + 1}`,
+    studentCode: make8DigitCode(classId, idx),
   }))
 }
 
@@ -387,27 +394,50 @@ export function generateCheckoutRecords(
   return records
 }
 
-// Generate absence requests for today
+const ABSENCE_REASONS = [
+  'Con bị sốt, chưa khoẻ',
+  'Gia đình có việc riêng',
+  'Đám cưới họ hàng nội',
+  'Khám bệnh định kỳ',
+  'Về quê thăm ông bà',
+]
+
+// Generate absence requests for today — returns requests keyed by studentId for easy lookup
 export function generateAbsenceRequests(classId: string, date: string): AbsenceRequest[] {
   const students = generateStudentsForClass(classId)
   const requests: AbsenceRequest[] = []
 
-  // Pick 2-3 students with absence requests
-  const indices = [2, 7, 14]
-  indices.forEach((idx, pos) => {
+  // index 2 → chờ duyệt, index 7 → đã duyệt, index 14 → đã duyệt (past day requests)
+  const configs = [
+    { idx: 2, status: 'chờ-duyệt' as AbsenceRequestStatus, reasonIdx: 0, hoursAgo: 1 },
+    { idx: 7, status: 'đã-duyệt' as AbsenceRequestStatus, reasonIdx: 1, hoursAgo: 3 },
+    { idx: 14, status: 'đã-duyệt' as AbsenceRequestStatus, reasonIdx: 2, hoursAgo: 5 },
+    { idx: 4, status: 'chờ-duyệt' as AbsenceRequestStatus, reasonIdx: 3, hoursAgo: 0.5 },
+  ]
+
+  configs.forEach(({ idx, status, reasonIdx, hoursAgo }) => {
     const student = students[idx]
-    const statuses: AbsenceRequestStatus[] = ['chờ-duyệt', 'đã-duyệt', 'đã-duyệt']
     requests.push({
-      id: `absence-${classId}-${date}-${pos}`,
+      id: `absence-${classId}-${date}-${idx}`,
       studentId: student.id,
       date,
-      reason: pos === 0 ? 'Bệnh' : pos === 1 ? 'Có việc gia đình' : 'Đám cưới bên nội',
-      requestedAt: new Date(Date.now() - (3 - pos) * 3600000).toISOString(),
-      requestStatus: statuses[pos],
+      reason: ABSENCE_REASONS[reasonIdx],
+      requestedAt: new Date(Date.now() - hoursAgo * 3600000).toISOString(),
+      requestStatus: status,
     })
   })
 
   return requests
+}
+
+// Returns the set of studentIds with approved absence requests for a given date
+export function getApprovedAbsenceStudentIds(requests: AbsenceRequest[]): Set<string> {
+  return new Set(requests.filter((r) => r.requestStatus === 'đã-duyệt').map((r) => r.studentId))
+}
+
+// Returns the set of studentIds with pending absence requests
+export function getPendingAbsenceStudentIds(requests: AbsenceRequest[]): Set<string> {
+  return new Set(requests.filter((r) => r.requestStatus === 'chờ-duyệt').map((r) => r.studentId))
 }
 
 // Pre-generate attendance data for today for class-7 (Lớp 6A2)

@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { TeachersHomeScreen } from '@/components/teachers/home-screen'
 import { ThucDonLopApp } from '@/components/teachers/thuc-don-lop'
+import { AttendanceApp } from '@/components/teachers/attendance'
 
 export default function Page() {
-  const [screen, setScreen] = useState<'home' | 'thuc-don'>('home')
+  const [screen, setScreen] = useState<'home' | 'thuc-don' | 'attendance'>('home')
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-300 p-6">
@@ -68,10 +69,16 @@ export default function Page() {
           {/* Scrollable screen content */}
           <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
             {screen === 'home' && (
-              <TeachersHomeScreen onNavigateToThucDon={() => setScreen('thuc-don')} />
+              <TeachersHomeScreen 
+                onNavigateToThucDon={() => setScreen('thuc-don')}
+                onNavigateToDiemDanh={() => setScreen('attendance')}
+              />
             )}
             {screen === 'thuc-don' && (
               <ThucDonLopApp onBack={() => setScreen('home')} />
+            )}
+            {screen === 'attendance' && (
+              <AttendanceApp onBack={() => setScreen('home')} />
             )}
           </div>
 

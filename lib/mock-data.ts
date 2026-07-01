@@ -251,3 +251,166 @@ export const MOCK_FOOD_MENUS: Record<string, Record<string, FoodMenu>> = {
 }
 
 export const TODAY_STR = dateOffset(0) // '30/06/2026'
+
+// ─── Attendance Types ──────────────────────────────────────────────────────
+
+export type AttendanceStatus = 'chưa-điểm-danh' | 'đúng-giờ' | 'đi-trễ' | 'vắng-có-phép' | 'vắng-không-phép' | 'chờ-duyệt'
+export type CheckoutStatus = 'chưa-trả' | 'về-đúng-giờ' | 'về-muộn'
+export type AbsenceRequestStatus = 'chờ-duyệt' | 'đã-duyệt' | 'đã-hủy'
+
+export interface Student {
+  id: string
+  name: string
+  avatar?: string
+  studentCode: string
+}
+
+export interface CheckInRecord {
+  studentId: string
+  date: string
+  checkInTime?: string // HH:MM format
+  status: AttendanceStatus
+  note?: string
+  absenceRequestId?: string
+}
+
+export interface CheckOutRecord {
+  studentId: string
+  date: string
+  checkOutTime?: string // HH:MM format
+  status: CheckoutStatus
+  note?: string
+}
+
+export interface AbsenceRequest {
+  id: string
+  studentId: string
+  date: string
+  reason: string
+  requestedAt: string // ISO timestamp
+  requestStatus: AbsenceRequestStatus
+}
+
+// School operation times
+export const SCHOOL_CHECK_IN_TIME = '08:00'
+export const SCHOOL_CHECK_OUT_TIME = '16:30'
+
+// 20 students per class
+const STUDENT_NAMES = [
+  'Nguyễn Văn An', 'Trần Thị Bảo', 'Lê Minh Châu', 'Phạm Quốc Đạt', 'Hoàng Hữu Em',
+  'Vũ Thanh Phương', 'Đặng Kiều Giang', 'Cao Huy Hoàng', 'Bùi Thanh Ick', 'Đỗ Minh K',
+  'Dương Lâm', 'Trần Tuấn Long', 'Ngô Thị Minh', 'Phan Nhật Nam', 'Quách Thị Oàn',
+  'Raman Phạm', 'Sơn Thị Quỳnh', 'Tô Văn Ronaldo', 'Ưu Hữu Sơn', 'Võ Minh Tân',
+]
+
+export function generateStudentsForClass(classId: string): Student[] {
+  return STUDENT_NAMES.map((name, idx) => ({
+    id: `student-${classId}-${idx}`,
+    name,
+    studentCode: `${classId}-${idx + 1}`,
+  }))
+}
+
+// Generate attendance records for today + 3 example dates
+export function generateAttendanceRecords(
+  classId: string,
+  date: string
+): Record<string, CheckInRecord> {
+  const students = generateStudentsForClass(classId)
+  const records: Record<string, CheckInRecord> = {}
+
+  students.forEach((student, idx) => {
+    const rand = (idx * 13) % 100
+    let status: AttendanceStatus = 'chưa-điểm-danh'
+    let checkInTime: string | undefined
+
+    if (rand < 70) {
+      // 70% on-time
+      status = 'đúng-giờ'
+      const minutes = 5 + Math.floor((idx * 7) % 15)
+      checkInTime = `07:${String(55 - minutes).padStart(2, '0')}`
+    } else if (rand < 85) {
+      // 15% late
+      status = 'đi-trễ'
+      const minutes = 10 + Math.floor((idx * 11) % 20)
+      checkInTime = `08:${String(minutes).padStart(2, '0')}`
+    } else if (rand < 93) {
+      // 8% absent with permission
+      status = 'vắng-có-phép'
+    } else {
+      // 7% absent no permission
+      status = 'vắng-không-phép'
+    }
+
+    records[student.id] = {
+      studentId: student.id,
+      date,
+      checkInTime,
+      status,
+      note: status === 'vắng-có-phép' ? 'Bệnh' : undefined,
+    }
+  })
+
+  return records
+}
+
+// Generate checkout records (only for students who checked in)
+export function generateCheckoutRecords(
+  classId: string,
+  date: string,
+  checkins: Record<string, CheckInRecord>
+): Record<string, CheckOutRecord> {
+  const records: Record<string, CheckOutRecord> = {}
+
+  Object.entries(checkins).forEach(([studentId, checkin]) => {
+    // Only students who checked in are eligible for checkout
+    if (checkin.status === 'đúng-giờ' || checkin.status === 'đi-trễ') {
+      const rand = parseInt(studentId.split('-').pop() || '0') * 17
+      let status: CheckoutStatus = 'về-đúng-giờ'
+      let checkOutTime = '16:30'
+
+      if (rand % 100 < 20) {
+        status = 'về-muộn'
+        const minutes = 5 + Math.floor((rand * 5) % 30)
+        checkOutTime = `16:${String(30 + minutes).padStart(2, '0')}`
+      }
+
+      records[studentId] = {
+        studentId,
+        date,
+        checkOutTime,
+        status,
+      }
+    }
+  })
+
+  return records
+}
+
+// Generate absence requests for today
+export function generateAbsenceRequests(classId: string, date: string): AbsenceRequest[] {
+  const students = generateStudentsForClass(classId)
+  const requests: AbsenceRequest[] = []
+
+  // Pick 2-3 students with absence requests
+  const indices = [2, 7, 14]
+  indices.forEach((idx, pos) => {
+    const student = students[idx]
+    const statuses: AbsenceRequestStatus[] = ['chờ-duyệt', 'đã-duyệt', 'đã-duyệt']
+    requests.push({
+      id: `absence-${classId}-${date}-${pos}`,
+      studentId: student.id,
+      date,
+      reason: pos === 0 ? 'Bệnh' : pos === 1 ? 'Có việc gia đình' : 'Đám cưới bên nội',
+      requestedAt: new Date(Date.now() - (3 - pos) * 3600000).toISOString(),
+      requestStatus: statuses[pos],
+    })
+  })
+
+  return requests
+}
+
+// Pre-generate attendance data for today for class-7 (Lớp 6A2)
+export const MOCK_ATTENDANCE_TODAY = generateAttendanceRecords('class-7', TODAY_STR)
+export const MOCK_CHECKOUT_TODAY = generateCheckoutRecords('class-7', TODAY_STR, MOCK_ATTENDANCE_TODAY)
+export const MOCK_ABSENCE_REQUESTS_TODAY = generateAbsenceRequests('class-7', TODAY_STR)

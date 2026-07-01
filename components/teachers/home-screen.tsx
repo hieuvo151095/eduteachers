@@ -103,9 +103,10 @@ const ATTENDANCE_ROWS = [
 
 interface TeachersHomeScreenProps {
   onNavigateToThucDon: () => void
+  onNavigateToDiemDanh: () => void
 }
 
-export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenProps) {
+export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh }: TeachersHomeScreenProps) {
   return (
     <div className="flex flex-col bg-gray-50 font-sans">
 
@@ -215,7 +216,11 @@ export function TeachersHomeScreen({ onNavigateToThucDon }: TeachersHomeScreenPr
           {ENTRY_POINTS.map(({ id, label, Icon }) => (
             <button
               key={id}
-              onClick={id === 'thuc-don' ? onNavigateToThucDon : undefined}
+              onClick={
+                id === 'thuc-don' ? onNavigateToThucDon :
+                id === 'diem-danh' ? onNavigateToDiemDanh :
+                undefined
+              }
               className="flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-black">

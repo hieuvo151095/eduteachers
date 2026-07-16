@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { TeachersHomeScreen } from '@/components/teachers/home-screen'
 import { ThucDonLopApp } from '@/components/teachers/thuc-don-lop'
 import { AttendanceApp } from '@/components/teachers/attendance'
+import { MessagingApp } from '@/components/teachers/messaging'
 
 export default function Page() {
-  const [screen, setScreen] = useState<'home' | 'thuc-don' | 'attendance'>('home')
+  const [screen, setScreen] = useState<'home' | 'thuc-don' | 'attendance' | 'messaging'>('home')
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-300 p-6">
@@ -72,6 +73,7 @@ export default function Page() {
               <TeachersHomeScreen 
                 onNavigateToThucDon={() => setScreen('thuc-don')}
                 onNavigateToDiemDanh={() => setScreen('attendance')}
+                onNavigateToMessaging={() => setScreen('messaging')}
               />
             )}
             {screen === 'thuc-don' && (
@@ -79,6 +81,9 @@ export default function Page() {
             )}
             {screen === 'attendance' && (
               <AttendanceApp onBack={() => setScreen('home')} />
+            )}
+            {screen === 'messaging' && (
+              <MessagingApp onBack={() => setScreen('home')} />
             )}
           </div>
 

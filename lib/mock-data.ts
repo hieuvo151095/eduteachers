@@ -444,3 +444,168 @@ export function getPendingAbsenceStudentIds(requests: AbsenceRequest[]): Set<str
 export const MOCK_ATTENDANCE_TODAY = generateAttendanceRecords('class-7', TODAY_STR)
 export const MOCK_CHECKOUT_TODAY = generateCheckoutRecords('class-7', TODAY_STR, MOCK_ATTENDANCE_TODAY)
 export const MOCK_ABSENCE_REQUESTS_TODAY = generateAbsenceRequests('class-7', TODAY_STR)
+
+// ─── Messaging Types ──────────────────────────────────────────────────────────
+
+export type MessageType = 'text' | 'request'
+export type RequestType = 'medicine' | 'absence' | 'pickup' | 'note'
+export type RequestStatus = 'pending' | 'acknowledged' | 'rejected'
+
+export interface MessageRequest {
+  id: string
+  type: RequestType
+  title: string
+  description: string
+  appliesDate?: string
+  status: RequestStatus
+}
+
+export interface ChatMessage {
+  id: string
+  senderId: string
+  senderName: string
+  senderRole: 'teacher' | 'parent'
+  timestamp: string
+  messageType: MessageType
+  text?: string
+  request?: MessageRequest
+}
+
+export interface Conversation {
+  id: string
+  type: 'direct' | 'group'
+  participantIds: string[]
+  displayName: string
+  displayAvatar?: string
+  lastMessage?: string
+  lastMessageTime?: string
+  unreadCount: number
+  classFilter?: string
+}
+
+// Mock parent data
+const PARENTS = [
+  { id: 'parent-1', name: 'Lê Thị Hoa', studentName: 'Minh An', studentId: 'student-class-7-2' },
+  { id: 'parent-2', name: 'Trần Văn Hùng', studentName: 'Quỳnh Anh', studentId: 'student-class-7-7' },
+  { id: 'parent-3', name: 'Nguyễn Thị Thu', studentName: 'Đăng Khôi', studentId: 'student-class-7-4' },
+  { id: 'parent-4', name: 'Phạm Minh Hiếu', studentName: 'Bảo Châu', studentId: 'student-class-7-9' },
+  { id: 'parent-5', name: 'Võ Thanh Hoa', studentName: 'Gia Hân', studentId: 'student-class-7-14' },
+]
+
+// Mock conversations list
+export const MOCK_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv-1',
+    type: 'group',
+    participantIds: ['teacher-1', ...PARENTS.map((p) => p.id)],
+    displayName: 'Nhóm Lớp 6A2',
+    unreadCount: 0,
+    classFilter: 'class-7',
+    lastMessage: '7h30 tập trung ở sân trường nhé.',
+    lastMessageTime: '08:50',
+  },
+  {
+    id: 'conv-2',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-1'],
+    displayName: 'PH bé Minh An',
+    lastMessage: '💊 Dặn thuốc — Paracetamol 250mg',
+    lastMessageTime: '10:02',
+    unreadCount: 1,
+  },
+  {
+    id: 'conv-3',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-2'],
+    displayName: 'PH bé Quỳnh Anh',
+    lastMessage: 'Dạ em cảm ơn cô nhiều ạ',
+    lastMessageTime: '09:15',
+    unreadCount: 0,
+  },
+  {
+    id: 'conv-4',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-3'],
+    displayName: 'PH bé Đăng Khôi',
+    lastMessage: 'Nhờ cô để ý bé giúp em ạ',
+    lastMessageTime: 'Hôm qua',
+    unreadCount: 0,
+  },
+  {
+    id: 'conv-5',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-5'],
+    displayName: 'PH bé Gia Hân',
+    lastMessage: 'Bé nay nghỉ ốm cô nhé',
+    lastMessageTime: 'T3',
+    unreadCount: 0,
+  },
+]
+
+// Mock messages for direct conversation with parent-1 (Minh An)
+export const MOCK_MESSAGES_DIRECT: ChatMessage[] = [
+  {
+    id: 'msg-1',
+    senderId: 'parent-1',
+    senderName: 'Mẹ bé Minh An',
+    senderRole: 'parent',
+    timestamp: new Date(Date.now() - 120 * 60000).toISOString(),
+    messageType: 'text',
+    text: 'Chào cô, sáng nay bé hơi sốt nhẹ ạ.',
+  },
+  {
+    id: 'msg-2',
+    senderId: 'parent-1',
+    senderName: 'Mẹ bé Minh An',
+    senderRole: 'parent',
+    timestamp: new Date(Date.now() - 118 * 60000).toISOString(),
+    messageType: 'request',
+    request: {
+      id: 'req-1',
+      type: 'medicine',
+      title: 'Dặn thuốc',
+      description: 'Paracetamol 250mg — sau bữa trưa, 1 gói. Áp dụng hôm nay.',
+      appliesDate: TODAY_STR,
+      status: 'pending',
+    },
+  },
+  {
+    id: 'msg-3',
+    senderId: 'teacher-1',
+    senderName: 'Cô Nguyễn Hồng',
+    senderRole: 'teacher',
+    timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
+    messageType: 'text',
+    text: 'Cảm ơn, cô sẽ chú ý cho bé ạ.',
+  },
+]
+
+// Mock messages for group conversation
+export const MOCK_MESSAGES_GROUP: ChatMessage[] = [
+  {
+    id: 'gmsg-1',
+    senderId: 'teacher-1',
+    senderName: 'Cô Nguyễn Hồng · GVCN',
+    senderRole: 'teacher',
+    timestamp: new Date(Date.now() - 180 * 60000).toISOString(),
+    messageType: 'text',
+    text: '7h30 tập trung ở sân trường nhé.',
+  },
+  {
+    id: 'gmsg-2',
+    senderId: 'parent-5',
+    senderName: 'Mẹ bé Gia Hân',
+    senderRole: 'parent',
+    timestamp: new Date(Date.now() - 150 * 60000).toISOString(),
+    messageType: 'text',
+    text: 'Dạ cô, cảm ơn cô ạ',
+  },
+]
+
+export const MOCK_TEACHER_INFO = {
+  id: 'teacher-1',
+  name: 'Cô Nguyễn Hồng',
+  classId: 'class-7',
+  className: 'Lớp 6A2',
+  studentCount: 32,
+}

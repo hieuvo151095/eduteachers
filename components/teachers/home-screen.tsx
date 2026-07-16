@@ -79,6 +79,15 @@ function IconThucDon() {
   )
 }
 
+function IconTraoDoI() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 8c-6 0-11 4-11 9v3H6l5 5 5-5h-3v-3c0-3 2-5 5-5s5 2 5 5v3h3v-3c0-5-5-9-11-9z" />
+      <path d="M20 32c6 0 11-4 11-9v-3h3l-5-5-5 5h3v3c0 3-2 5-5 5s-5-2-5-5v-3h-3v3c0 5 5 9 11 9z" />
+    </svg>
+  )
+}
+
 // ─── Entry point config ──────────────────────────────────────────────────────
 
 const ENTRY_POINTS = [
@@ -89,6 +98,7 @@ const ENTRY_POINTS = [
   { id: 'tkb',       label: 'Thời khoá\nbiểu',     Icon: IconThoiKhoa },
   { id: 'bai-tap',   label: 'Bài tập',             Icon: IconBaiTap },
   { id: 'thuc-don',  label: 'Thực đơn\nlớp',       Icon: IconThucDon },
+  { id: 'trao-doi',  label: 'Trao đổi',            Icon: IconTraoDoI },
 ]
 
 // ─── Attendance mock data ────────────────────────────────────────────────────
@@ -104,9 +114,10 @@ const ATTENDANCE_ROWS = [
 interface TeachersHomeScreenProps {
   onNavigateToThucDon: () => void
   onNavigateToDiemDanh: () => void
+  onNavigateToMessaging: () => void
 }
 
-export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh }: TeachersHomeScreenProps) {
+export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, onNavigateToMessaging }: TeachersHomeScreenProps) {
   return (
     <div className="flex flex-col bg-gray-50 font-sans">
 
@@ -219,10 +230,15 @@ export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh }
               onClick={
                 id === 'thuc-don' ? onNavigateToThucDon :
                 id === 'diem-danh' ? onNavigateToDiemDanh :
+                id === 'trao-doi' ? onNavigateToMessaging :
                 undefined
               }
-              className="flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"
+              className="relative flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"
             >
+              {/* Unread badge for Trao đổi */}
+              {id === 'trao-doi' && (
+                <div className="absolute right-2 top-0 h-2 w-2 rounded-full bg-red-500" />
+              )}
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-black">
                 <Icon />
               </div>

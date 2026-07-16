@@ -251,3 +251,361 @@ export const MOCK_FOOD_MENUS: Record<string, Record<string, FoodMenu>> = {
 }
 
 export const TODAY_STR = dateOffset(0) // '30/06/2026'
+
+// ─── Attendance Types ──────────────────────────────────────────────────────
+
+export type AttendanceStatus = 'chưa-điểm-danh' | 'đúng-giờ' | 'đi-trễ' | 'vắng-có-phép' | 'vắng-không-phép' | 'chờ-duyệt'
+export type CheckoutStatus = 'chưa-trả' | 'về-đúng-giờ' | 'về-muộn'
+export type AbsenceRequestStatus = 'chờ-duyệt' | 'đã-duyệt' | 'đã-hủy'
+
+export interface Student {
+  id: string
+  name: string
+  avatar?: string
+  studentCode: string
+}
+
+export interface CheckInRecord {
+  studentId: string
+  date: string
+  checkInTime?: string // HH:MM format
+  status: AttendanceStatus
+  note?: string
+  absenceRequestId?: string
+}
+
+export interface CheckOutRecord {
+  studentId: string
+  date: string
+  checkOutTime?: string // HH:MM format
+  status: CheckoutStatus
+  note?: string
+}
+
+export interface AbsenceRequest {
+  id: string
+  studentId: string
+  date: string
+  reason: string
+  requestedAt: string // ISO timestamp
+  requestStatus: AbsenceRequestStatus
+}
+
+// School operation times
+export const SCHOOL_CHECK_IN_TIME = '08:00'
+export const SCHOOL_CHECK_OUT_TIME = '16:30'
+
+// 20 students per class
+const STUDENT_NAMES = [
+  'Nguyễn Văn An', 'Trần Thị Bảo', 'Lê Minh Châu', 'Phạm Quốc Đạt', 'Hoàng Hữu Em',
+  'Vũ Thanh Phương', 'Đặng Kiều Giang', 'Cao Huy Hoàng', 'Bùi Thanh Ick', 'Đỗ Minh K',
+  'Dương Lâm', 'Trần Tuấn Long', 'Ngô Thị Minh', 'Phan Nhật Nam', 'Quách Thị Oàn',
+  'Raman Phạm', 'Sơn Thị Quỳnh', 'Tô Văn Ronaldo', 'Ưu Hữu Sơn', 'Võ Minh Tân',
+]
+
+// Deterministic 8-digit student code from classId + index
+function make8DigitCode(classId: string, idx: number): string {
+  const seed = classId.replace(/\D/g, '') || '7'
+  const base = parseInt(seed) * 1000000 + idx * 37 * 1000 + 10000000
+  return String(base % 100000000).padStart(8, '0')
+}
+
+export function generateStudentsForClass(classId: string): Student[] {
+  return STUDENT_NAMES.map((name, idx) => ({
+    id: `student-${classId}-${idx}`,
+    name,
+    studentCode: make8DigitCode(classId, idx),
+  }))
+}
+
+// Generate attendance records for today + 3 example dates
+export function generateAttendanceRecords(
+  classId: string,
+  date: string
+): Record<string, CheckInRecord> {
+  const students = generateStudentsForClass(classId)
+  const records: Record<string, CheckInRecord> = {}
+
+  students.forEach((student, idx) => {
+    const rand = (idx * 13) % 100
+    let status: AttendanceStatus = 'chưa-điểm-danh'
+    let checkInTime: string | undefined
+
+    if (rand < 70) {
+      // 70% on-time
+      status = 'đúng-giờ'
+      const minutes = 5 + Math.floor((idx * 7) % 15)
+      checkInTime = `07:${String(55 - minutes).padStart(2, '0')}`
+    } else if (rand < 85) {
+      // 15% late
+      status = 'đi-trễ'
+      const minutes = 10 + Math.floor((idx * 11) % 20)
+      checkInTime = `08:${String(minutes).padStart(2, '0')}`
+    } else if (rand < 93) {
+      // 8% absent with permission
+      status = 'vắng-có-phép'
+    } else {
+      // 7% absent no permission
+      status = 'vắng-không-phép'
+    }
+
+    records[student.id] = {
+      studentId: student.id,
+      date,
+      checkInTime,
+      status,
+      note: status === 'vắng-có-phép' ? 'Bệnh' : undefined,
+    }
+  })
+
+  return records
+}
+
+// Generate checkout records (only for students who checked in)
+export function generateCheckoutRecords(
+  classId: string,
+  date: string,
+  checkins: Record<string, CheckInRecord>
+): Record<string, CheckOutRecord> {
+  const records: Record<string, CheckOutRecord> = {}
+
+  Object.entries(checkins).forEach(([studentId, checkin]) => {
+    // Only students who checked in are eligible for checkout
+    if (checkin.status === 'đúng-giờ' || checkin.status === 'đi-trễ') {
+      const rand = parseInt(studentId.split('-').pop() || '0') * 17
+      let status: CheckoutStatus = 'về-đúng-giờ'
+      let checkOutTime = '16:30'
+
+      if (rand % 100 < 20) {
+        status = 'về-muộn'
+        const minutes = 5 + Math.floor((rand * 5) % 30)
+        checkOutTime = `16:${String(30 + minutes).padStart(2, '0')}`
+      }
+
+      records[studentId] = {
+        studentId,
+        date,
+        checkOutTime,
+        status,
+      }
+    }
+  })
+
+  return records
+}
+
+const ABSENCE_REASONS = [
+  'Con bị sốt, chưa khoẻ',
+  'Gia đình có việc riêng',
+  'Đám cưới họ hàng nội',
+  'Khám bệnh định kỳ',
+  'Về quê thăm ông bà',
+]
+
+// Generate absence requests for today — returns requests keyed by studentId for easy lookup
+export function generateAbsenceRequests(classId: string, date: string): AbsenceRequest[] {
+  const students = generateStudentsForClass(classId)
+  const requests: AbsenceRequest[] = []
+
+  // index 2 → chờ duyệt, index 7 → đã duyệt, index 14 → đã duyệt (past day requests)
+  const configs = [
+    { idx: 2, status: 'chờ-duyệt' as AbsenceRequestStatus, reasonIdx: 0, hoursAgo: 1 },
+    { idx: 7, status: 'đã-duyệt' as AbsenceRequestStatus, reasonIdx: 1, hoursAgo: 3 },
+    { idx: 14, status: 'đã-duyệt' as AbsenceRequestStatus, reasonIdx: 2, hoursAgo: 5 },
+    { idx: 4, status: 'chờ-duyệt' as AbsenceRequestStatus, reasonIdx: 3, hoursAgo: 0.5 },
+  ]
+
+  configs.forEach(({ idx, status, reasonIdx, hoursAgo }) => {
+    const student = students[idx]
+    requests.push({
+      id: `absence-${classId}-${date}-${idx}`,
+      studentId: student.id,
+      date,
+      reason: ABSENCE_REASONS[reasonIdx],
+      requestedAt: new Date(Date.now() - hoursAgo * 3600000).toISOString(),
+      requestStatus: status,
+    })
+  })
+
+  return requests
+}
+
+// Returns the set of studentIds with approved absence requests for a given date
+export function getApprovedAbsenceStudentIds(requests: AbsenceRequest[]): Set<string> {
+  return new Set(requests.filter((r) => r.requestStatus === 'đã-duyệt').map((r) => r.studentId))
+}
+
+// Returns the set of studentIds with pending absence requests
+export function getPendingAbsenceStudentIds(requests: AbsenceRequest[]): Set<string> {
+  return new Set(requests.filter((r) => r.requestStatus === 'chờ-duyệt').map((r) => r.studentId))
+}
+
+// Pre-generate attendance data for today for class-7 (Lớp 6A2)
+export const MOCK_ATTENDANCE_TODAY = generateAttendanceRecords('class-7', TODAY_STR)
+export const MOCK_CHECKOUT_TODAY = generateCheckoutRecords('class-7', TODAY_STR, MOCK_ATTENDANCE_TODAY)
+export const MOCK_ABSENCE_REQUESTS_TODAY = generateAbsenceRequests('class-7', TODAY_STR)
+
+// ─── Messaging Types ──────────────────────────────────────────────────────────
+
+export type MessageType = 'text' | 'request'
+export type RequestType = 'medicine' | 'absence' | 'pickup' | 'note'
+export type RequestStatus = 'pending' | 'acknowledged' | 'rejected'
+
+export interface MessageRequest {
+  id: string
+  type: RequestType
+  title: string
+  description: string
+  appliesDate?: string
+  status: RequestStatus
+}
+
+export interface ChatMessage {
+  id: string
+  senderId: string
+  senderName: string
+  senderRole: 'teacher' | 'parent'
+  timestamp: string
+  messageType: MessageType
+  text?: string
+  request?: MessageRequest
+}
+
+export interface Conversation {
+  id: string
+  type: 'direct' | 'group'
+  participantIds: string[]
+  displayName: string
+  displayAvatar?: string
+  lastMessage?: string
+  lastMessageTime?: string
+  unreadCount: number
+  classFilter?: string
+}
+
+// Mock parent data
+const PARENTS = [
+  { id: 'parent-1', name: 'Lê Thị Hoa', studentName: 'Minh An', studentId: 'student-class-7-2' },
+  { id: 'parent-2', name: 'Trần Văn Hùng', studentName: 'Quỳnh Anh', studentId: 'student-class-7-7' },
+  { id: 'parent-3', name: 'Nguyễn Thị Thu', studentName: 'Đăng Khôi', studentId: 'student-class-7-4' },
+  { id: 'parent-4', name: 'Phạm Minh Hiếu', studentName: 'Bảo Châu', studentId: 'student-class-7-9' },
+  { id: 'parent-5', name: 'Võ Thanh Hoa', studentName: 'Gia Hân', studentId: 'student-class-7-14' },
+]
+
+// Mock conversations list
+export const MOCK_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv-1',
+    type: 'group',
+    participantIds: ['teacher-1', ...PARENTS.map((p) => p.id)],
+    displayName: 'Nhóm Lớp 6A2',
+    unreadCount: 0,
+    classFilter: 'class-7',
+    lastMessage: '7h30 tập trung ở sân trường nhé.',
+    lastMessageTime: '08:50',
+  },
+  {
+    id: 'conv-2',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-1'],
+    displayName: 'PH bé Minh An',
+    lastMessage: '💊 Dặn thuốc — Paracetamol 250mg',
+    lastMessageTime: '10:02',
+    unreadCount: 1,
+  },
+  {
+    id: 'conv-3',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-2'],
+    displayName: 'PH bé Quỳnh Anh',
+    lastMessage: 'Dạ em cảm ơn cô nhiều ạ',
+    lastMessageTime: '09:15',
+    unreadCount: 0,
+  },
+  {
+    id: 'conv-4',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-3'],
+    displayName: 'PH bé Đăng Khôi',
+    lastMessage: 'Nhờ cô để ý bé giúp em ạ',
+    lastMessageTime: 'Hôm qua',
+    unreadCount: 0,
+  },
+  {
+    id: 'conv-5',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-5'],
+    displayName: 'PH bé Gia Hân',
+    lastMessage: 'Bé nay nghỉ ốm cô nhé',
+    lastMessageTime: 'T3',
+    unreadCount: 0,
+  },
+]
+
+// Mock messages for direct conversation with parent-1 (Minh An)
+export const MOCK_MESSAGES_DIRECT: ChatMessage[] = [
+  {
+    id: 'msg-1',
+    senderId: 'parent-1',
+    senderName: 'Mẹ bé Minh An',
+    senderRole: 'parent',
+    timestamp: new Date(Date.now() - 120 * 60000).toISOString(),
+    messageType: 'text',
+    text: 'Chào cô, sáng nay bé hơi sốt nhẹ ạ.',
+  },
+  {
+    id: 'msg-2',
+    senderId: 'parent-1',
+    senderName: 'Mẹ bé Minh An',
+    senderRole: 'parent',
+    timestamp: new Date(Date.now() - 118 * 60000).toISOString(),
+    messageType: 'request',
+    request: {
+      id: 'req-1',
+      type: 'medicine',
+      title: 'Dặn thuốc',
+      description: 'Paracetamol 250mg — sau bữa trưa, 1 gói. Áp dụng hôm nay.',
+      appliesDate: TODAY_STR,
+      status: 'pending',
+    },
+  },
+  {
+    id: 'msg-3',
+    senderId: 'teacher-1',
+    senderName: 'Cô Nguyễn Hồng',
+    senderRole: 'teacher',
+    timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
+    messageType: 'text',
+    text: 'Cảm ơn, cô sẽ chú ý cho bé ạ.',
+  },
+]
+
+// Mock messages for group conversation
+export const MOCK_MESSAGES_GROUP: ChatMessage[] = [
+  {
+    id: 'gmsg-1',
+    senderId: 'teacher-1',
+    senderName: 'Cô Nguyễn Hồng · GVCN',
+    senderRole: 'teacher',
+    timestamp: new Date(Date.now() - 180 * 60000).toISOString(),
+    messageType: 'text',
+    text: '7h30 tập trung ở sân trường nhé.',
+  },
+  {
+    id: 'gmsg-2',
+    senderId: 'parent-5',
+    senderName: 'Mẹ bé Gia Hân',
+    senderRole: 'parent',
+    timestamp: new Date(Date.now() - 150 * 60000).toISOString(),
+    messageType: 'text',
+    text: 'Dạ cô, cảm ơn cô ạ',
+  },
+]
+
+export const MOCK_TEACHER_INFO = {
+  id: 'teacher-1',
+  name: 'Cô Nguyễn Hồng',
+  classId: 'class-7',
+  className: 'Lớp 6A2',
+  studentCount: 32,
+}

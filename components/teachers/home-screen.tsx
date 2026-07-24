@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { CheckInButton, type CheckInStatus } from './check-in-button'
 
 // ─── Entry-point icons (line-art, B&W) ──────────────────────────────────────
 
@@ -118,6 +120,16 @@ interface TeachersHomeScreenProps {
 }
 
 export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, onNavigateToMessaging }: TeachersHomeScreenProps) {
+  const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('none')
+  const [checkInTime, setCheckInTime] = useState<string>()
+  const [checkOutTime, setCheckOutTime] = useState<string>()
+
+  const handleCheckInStatusChange = (status: CheckInStatus, inTime?: string, outTime?: string) => {
+    setCheckInStatus(status)
+    if (inTime) setCheckInTime(inTime)
+    if (outTime) setCheckOutTime(outTime)
+  }
+
   return (
     <div className="flex flex-col bg-gray-50 font-sans">
 
@@ -129,16 +141,29 @@ export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, 
           </div>
           <span className="text-sm font-semibold text-black">ECO School Giao viên</span>
         </div>
-        {/* Notification bell */}
-        <button className="relative flex h-8 w-8 items-center justify-center">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
-            3
-          </span>
-        </button>
+        {/* Check-in button */}
+        <div className="flex items-center gap-2">
+          {checkInStatus !== 'none' && (
+            <div className="flex flex-col items-end gap-0.5">
+              {checkInTime && (
+                <p className="text-[9px] text-gray-600 font-medium">
+                  V: {checkInTime}
+                </p>
+              )}
+              {checkOutTime && (
+                <p className="text-[9px] text-gray-600 font-medium">
+                  R: {checkOutTime}
+                </p>
+              )}
+            </div>
+          )}
+          <CheckInButton
+            status={checkInStatus}
+            checkInTime={checkInTime}
+            checkOutTime={checkOutTime}
+            onStatusChange={handleCheckInStatusChange}
+          />
+        </div>
       </div>
 
       {/* ── Promo banner ───────────────────────────────────────────────────── */}

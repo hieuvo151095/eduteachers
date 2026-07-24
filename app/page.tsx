@@ -76,6 +76,22 @@ export default function Page() {
                 onNavigateToMessaging={() => setScreen('messaging')}
               />
             )}
+
+            {/* Floating Trao đổi FAB — only on home screen, sticky over scroll */}
+            {screen === 'home' && (
+              <button
+                onClick={() => setScreen('messaging')}
+                aria-label="Trao đổi"
+                className="sticky bottom-4 ml-auto mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-black shadow-lg transition-transform active:scale-95"
+                style={{ display: 'flex' }}
+              >
+                <svg viewBox="0 0 40 40" fill="none" className="h-6 w-6" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 8c-6 0-11 4-11 9v3H6l5 5 5-5h-3v-3c0-3 2-5 5-5s5 2 5 5v3h3v-3c0-5-5-9-11-9z" />
+                  <path d="M20 32c6 0 11-4 11-9v-3h3l-5-5-5 5h3v3c0 3-2 5-5 5s-5-2-5-5v-3h-3v3c0 5 5 9 11 9z" />
+                </svg>
+                <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-black" />
+              </button>
+            )}
             {screen === 'thuc-don' && (
               <ThucDonLopApp onBack={() => setScreen('home')} />
             )}

@@ -501,7 +501,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     displayName: 'Nhóm Lớp 6A2',
     unreadCount: 0,
     classFilter: 'class-7',
-    lastMessage: '7h30 tập trung ở sân trường nhé.',
+    lastMessage: 'Bạn: 7h30 tập trung ở sân trường nhé.',
     lastMessageTime: '08:50',
   },
   {

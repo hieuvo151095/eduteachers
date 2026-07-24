@@ -25,15 +25,7 @@ import {
 // ─── Extra mock data ──────────────────────────────────────────────────────────
 
 const EXTRA_CONVERSATIONS: Conversation[] = [
-  {
-    id: 'conv-6',
-    type: 'direct',
-    participantIds: ['teacher-1', 'parent-6'],
-    displayName: 'PH bé Tuấn Kiệt',
-    lastMessage: 'Cảm ơn cô đã nhắn ạ',
-    lastMessageTime: '08:30',
-    unreadCount: 0,
-  },
+  // ── group chats
   {
     id: 'conv-7',
     type: 'group',
@@ -49,6 +41,54 @@ const EXTRA_CONVERSATIONS: Conversation[] = [
     participantIds: Array.from({ length: 16 }, (_, i) => `p7-${i}`),
     displayName: 'Nhóm Lớp 7B1',
     lastMessage: 'Mẹ bé Lan: Con bị ốm cô ơi',
+    lastMessageTime: 'T2',
+    unreadCount: 0,
+  },
+  // ── direct chats — Lớp 6A2
+  {
+    id: 'conv-d-6a2-1',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-6a2-1'],
+    displayName: 'PH bé Tuấn Kiệt',
+    lastMessage: 'Cảm ơn cô đã nhắn ạ',
+    lastMessageTime: '08:30',
+    unreadCount: 0,
+  },
+  {
+    id: 'conv-d-6a2-2',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-6a2-2'],
+    displayName: 'PH bé Thanh Mai',
+    lastMessage: 'Dạ em ghi nhận ạ',
+    lastMessageTime: '07:55',
+    unreadCount: 0,
+  },
+  // ── direct chats — Lớp 8A1
+  {
+    id: 'conv-d-8a1-1',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-8a1-1'],
+    displayName: 'PH bé Đức Minh (8A1)',
+    lastMessage: 'Bé bị ho cô nhé',
+    lastMessageTime: 'Hôm qua',
+    unreadCount: 1,
+  },
+  {
+    id: 'conv-d-8a1-2',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-8a1-2'],
+    displayName: 'PH bé Anh Thư (8A1)',
+    lastMessage: 'Sáng mai bé đến muộn cô ơi',
+    lastMessageTime: 'T4',
+    unreadCount: 0,
+  },
+  // ── direct chat — Lớp 7B1
+  {
+    id: 'conv-d-7b1-1',
+    type: 'direct',
+    participantIds: ['teacher-1', 'parent-7b1-1'],
+    displayName: 'PH bé Minh Tú (7B1)',
+    lastMessage: 'Con bị ốm cô nhé ạ',
     lastMessageTime: 'T2',
     unreadCount: 0,
   },
@@ -132,7 +172,7 @@ type MessagingScreen =
   | { type: 'direct'; conversationId: string }
   | { type: 'group'; conversationId: string }
   | { type: 'group-pinned'; conversationId: string }
-  | { type: 'compose' }
+  | { type: 'create-group'; defaultClass: string }
   | { type: 'group-manage'; conversationId: string }
 
 interface MessagingAppProps {
@@ -141,6 +181,7 @@ interface MessagingAppProps {
 
 export function MessagingApp({ onBack }: MessagingAppProps) {
   const [screen, setScreen] = useState<MessagingScreen>({ type: 'list' })
+  const [activeClassFilter, setActiveClassFilter] = useState('6A2')
   const [pinnedMessages, setPinnedMessages] = useState<Set<string>>(new Set(['gmsg-1']))
   const [allParentsReadOnly, setAllParentsReadOnly] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null)
@@ -161,11 +202,13 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
     <div className="flex h-full flex-col bg-white">
       {screen.type === 'list' && (
         <ScreenList
+          activeClassFilter={activeClassFilter}
+          onClassFilterChange={setActiveClassFilter}
           onSelectConversation={(id) => {
             const conv = ALL_CONVERSATIONS.find((c) => c.id === id)
             setScreen({ type: conv?.type === 'group' ? 'group' : 'direct', conversationId: id })
           }}
-          onCompose={() => setScreen({ type: 'compose' })}
+          onCreateGroup={() => setScreen({ type: 'create-group', defaultClass: activeClassFilter })}
           onBack={onBack}
         />
       )}
@@ -199,8 +242,12 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
         />
       )}
 
-      {screen.type === 'compose' && (
-        <ScreenCompose onBack={() => setScreen({ type: 'list' })} />
+      {screen.type === 'create-group' && (
+        <ScreenCreateGroup
+          defaultClass={screen.defaultClass}
+          onCreated={() => setScreen({ type: 'list' })}
+          onBack={() => setScreen({ type: 'list' })}
+        />
       )}
 
       {screen.type === 'group-manage' && (
@@ -220,27 +267,57 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
 // ─── SCREEN 1: Conversation List ─────────────────────────────────────────────
 
 interface ScreenListProps {
+  activeClassFilter: string
+  onClassFilterChange: (cls: string) => void
   onSelectConversation: (id: string) => void
-  onCompose: () => void
+  onCreateGroup: () => void
   onBack: () => void
 }
 
 const CLASS_FILTERS = ['6A2', '8A1', '7B1']
 
-function ScreenList({ onSelectConversation, onCompose, onBack }: ScreenListProps) {
+function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversation, onCreateGroup, onBack }: ScreenListProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [classFilter, setClassFilter] = useState<string>('6A2')
+  // FAB drag-to-delete state
+  const [fabPos, setFabPos] = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const [overDelete, setOverDelete] = useState(false)
+  const fabRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const filtered = ALL_CONVERSATIONS.filter((c) => {
     const matchesSearch = c.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesClass =
-      classFilter === '' || c.displayName.includes(classFilter)
+    const matchesClass = activeClassFilter === '' || c.displayName.includes(activeClassFilter)
     return matchesSearch && matchesClass
   })
 
+  // Touch/pointer drag for FAB
+  const handleFabPointerDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDragging(true)
+    setFabPos({ x: 0, y: 0 })
+  }
+  const handleFabPointerMove = (e: React.PointerEvent) => {
+    if (!dragging) return
+    setFabPos({ x: e.movementX + fabPos.x, y: e.movementY + fabPos.y })
+    // Check if over the delete zone (bottom-center area)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const parentRect = (e.currentTarget.closest('.messaging-list-root') as HTMLElement)?.getBoundingClientRect()
+    if (parentRect) {
+      const relY = e.clientY - parentRect.top
+      const relX = e.clientX - parentRect.left
+      const isNearDelete = relY > parentRect.height * 0.8 && relX > parentRect.width * 0.3 && relX < parentRect.width * 0.7
+      setOverDelete(isNearDelete)
+    }
+  }
+  const handleFabPointerUp = () => {
+    setDragging(false)
+    setFabPos({ x: 0, y: 0 })
+    setOverDelete(false)
+  }
+
   return (
-    <>
+    <div className="messaging-list-root relative flex flex-col h-full">
       {/* Header */}
       <div className="border-b border-gray-100 bg-white px-4 pb-0 pt-3">
         <div className="flex items-center gap-3 mb-3">
@@ -255,14 +332,14 @@ function ScreenList({ onSelectConversation, onCompose, onBack }: ScreenListProps
             <p className="text-xs text-gray-500">GVCN Lớp 6A2 · 32 học sinh</p>
           </div>
           <button
-            onClick={onCompose}
+            onClick={onCreateGroup}
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
           >
             <Plus size={20} className="text-black" />
           </button>
         </div>
 
-        {/* Search — real keyboard focus */}
+        {/* Search */}
         <div className="relative mb-3">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -283,14 +360,14 @@ function ScreenList({ onSelectConversation, onCompose, onBack }: ScreenListProps
           )}
         </div>
 
-        {/* Class filter chips — no "Tất cả" */}
+        {/* Class filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3">
           {CLASS_FILTERS.map((cls) => (
             <button
               key={cls}
-              onClick={() => setClassFilter(classFilter === cls ? '' : cls)}
+              onClick={() => onClassFilterChange(activeClassFilter === cls ? '' : cls)}
               className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                classFilter === cls
+                activeClassFilter === cls
                   ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -301,8 +378,8 @@ function ScreenList({ onSelectConversation, onCompose, onBack }: ScreenListProps
         </div>
       </div>
 
-      {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+      {/* Conversation list — each item in its own card frame */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {filtered.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-gray-400">Không tìm thấy cuộc trò chuyện</p>
         )}
@@ -313,37 +390,66 @@ function ScreenList({ onSelectConversation, onCompose, onBack }: ScreenListProps
             <button
               key={conv.id}
               onClick={() => onSelectConversation(conv.id)}
-              className="w-full px-4 py-3 text-left transition-colors hover:bg-gray-50"
+              className="w-full rounded-xl border border-gray-100 bg-white px-3 py-3 text-left shadow-sm transition-colors hover:bg-gray-50 active:bg-gray-100"
             >
               <div className="flex items-center gap-3">
                 {/* Avatar */}
                 {isGroup && count > 2 ? (
                   <GroupAvatar participantCount={count - 1} />
                 ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-700">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-700">
                     {initials(conv.displayName)}
                   </div>
                 )}
-
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="truncate font-semibold text-black text-sm">{conv.displayName}</h3>
-                    <p className="shrink-0 text-xs text-gray-400">{conv.lastMessageTime}</p>
+                    <p className="shrink-0 text-[11px] text-gray-400">{conv.lastMessageTime}</p>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-gray-500">{conv.lastMessage}</p>
                 </div>
-
-                {/* Unread dot */}
+                {/* Unread badge */}
                 {conv.unreadCount > 0 && (
-                  <div className="h-2 w-2 shrink-0 rounded-full bg-black" />
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black">
+                    <span className="text-[10px] font-bold text-white">{conv.unreadCount}</span>
+                  </div>
                 )}
               </div>
             </button>
           )
         })}
       </div>
-    </>
+
+      {/* Floating delete zone — appears while dragging */}
+      {dragging && (
+        <div className={`absolute bottom-16 left-1/2 -translate-x-1/2 flex h-14 w-14 items-center justify-center rounded-full border-2 transition-all ${
+          overDelete ? 'border-red-500 bg-red-50 scale-110' : 'border-gray-300 bg-white'
+        }`}>
+          <X size={22} className={overDelete ? 'text-red-500' : 'text-gray-400'} />
+        </div>
+      )}
+
+      {/* Floating action button (drag to delete zone) */}
+      <div
+        ref={fabRef}
+        className="absolute bottom-5 right-4 touch-none select-none"
+        style={{ transform: dragging ? `translate(${fabPos.x}px, ${fabPos.y}px)` : undefined, transition: dragging ? 'none' : 'transform 0.2s ease' }}
+        onPointerDown={handleFabPointerDown}
+        onPointerMove={handleFabPointerMove}
+        onPointerUp={handleFabPointerUp}
+        onPointerCancel={handleFabPointerUp}
+      >
+        <div className={`flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all ${
+          overDelete ? 'bg-red-500 scale-110' : 'bg-black'
+        }`}>
+          {overDelete
+            ? <X size={20} className="text-white" />
+            : <Plus size={22} className="text-white" />
+          }
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -453,15 +559,14 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
                     <p className="text-xs text-gray-700">{msg.request.description}</p>
                   </div>
                 )}
-                {/* Pin action — teacher only, visible on hover */}
-                {isTeacher && (
+                {/* Pin action — teacher only, only when not yet pinned.
+                    Unpinning is only available in the Pinned messages screen. */}
+                {isTeacher && !isPinned && (
                   <button
                     onClick={() => onTogglePin(msg.id)}
-                    className={`self-end text-[10px] transition-opacity ${
-                      isPinned ? 'opacity-100 text-amber-600' : 'opacity-0 group-hover:opacity-100 text-gray-400'
-                    } hover:text-black`}
+                    className="self-end text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-black"
                   >
-                    {isPinned ? 'Bỏ ghim' : 'Ghim'}
+                    Ghim
                   </button>
                 )}
               </div>
@@ -634,14 +739,14 @@ function ScreenGroupChat({
                 >
                   {msg.text}
                 </div>
-                {isTeacher && (
+                {/* Pin action — teacher only; only show "Ghim" when not yet pinned.
+                    Unpinning is only available in the Pinned messages screen. */}
+                {isTeacher && !isPinned && (
                   <button
                     onClick={() => onTogglePin(msg.id)}
-                    className={`self-end text-[10px] transition-opacity ${
-                      isPinned ? 'opacity-100 text-amber-600' : 'opacity-0 group-hover:opacity-100 text-gray-400'
-                    } hover:text-black`}
+                    className="self-end text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-black"
                   >
-                    {isPinned ? 'Bỏ ghim' : 'Ghim'}
+                    Ghim
                   </button>
                 )}
               </div>
@@ -840,96 +945,254 @@ function ScreenPinnedMessages({ pinnedMessages, onUnpin, onBack }: ScreenPinnedM
   )
 }
 
-// ─── SCREEN 5: Compose New ────────────────────────────────────────────────────
+// ─── SCREEN 5: Create Group ───────────────────────────────────────────────────
 
-interface ScreenComposeProps {
+const CLASSES = ['6A2', '8A1', '7B1']
+
+interface ScreenCreateGroupProps {
+  defaultClass: string
+  onCreated: () => void
   onBack: () => void
 }
 
-function ScreenCompose({ onBack }: ScreenComposeProps) {
-  const [mode, setMode] = useState<'single' | 'multiple' | 'class'>('single')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [search, setSearch] = useState('')
+function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGroupProps) {
+  const [groupName, setGroupName] = useState('')
+  const [selectedClass, setSelectedClass] = useState(defaultClass || '6A2')
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
+  const [showClassSheet, setShowClassSheet] = useState(false)
+  const [showStudentSheet, setShowStudentSheet] = useState(false)
+  const [studentSearch, setStudentSearch] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
 
-  const filtered = MOCK_PARENTS_MANAGE.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.studentName.toLowerCase().includes(search.toLowerCase())
+  const isValid = groupName.trim().length > 0 && selectedStudents.size >= 2
+
+  const filteredStudents = MOCK_STUDENTS.filter((s) =>
+    s.name.toLowerCase().includes(studentSearch.toLowerCase())
   )
 
+  const toggleStudent = (id: string) => {
+    setSelectedStudents((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleCreate = () => {
+    setShowConfirm(false)
+    onCreated()
+  }
+
   return (
-    <>
+    <div className="relative flex h-full flex-col bg-white">
+      {/* Header */}
       <div className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
         <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100">
-          <X size={20} className="text-gray-600" />
+          <ChevronLeft size={20} className="text-gray-600" />
         </button>
-        <h2 className="flex-1 font-bold text-black text-sm">Tạo trao đổi</h2>
+        <h2 className="flex-1 text-sm font-bold text-black">Tạo nhóm trao đổi mới</h2>
       </div>
 
-      <div className="flex gap-2 border-b border-gray-100 px-4 py-3">
-        {(['single', 'multiple', 'class'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => { setMode(m); setSelected(new Set()) }}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              mode === m ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {m === 'single' ? '1 người' : m === 'multiple' ? 'Nhiều người' : 'Cả lớp'}
-          </button>
-        ))}
-      </div>
-
-      <div className="border-b border-gray-100 px-4 py-3">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      {/* Form */}
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+        {/* Tên nhóm */}
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Tên nhóm
+          </label>
           <input
             type="text"
-            placeholder="Tìm phụ huynh / học sinh…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-gray-400"
+            placeholder="Nhập tên nhóm…"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400 focus:bg-white"
           />
+        </div>
+
+        {/* Chọn lớp */}
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Chọn lớp
+          </label>
+          <button
+            onClick={() => setShowClassSheet(true)}
+            className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm transition-colors hover:bg-gray-100"
+          >
+            <span className={selectedClass ? 'font-semibold text-black' : 'text-gray-400'}>
+              {selectedClass ? `Lớp ${selectedClass}` : 'Chọn lớp…'}
+            </span>
+            <ChevronRight size={16} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* Chọn học sinh */}
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Chọn học sinh
+            <span className="ml-1 font-normal normal-case text-gray-400">(chọn ít nhất 2)</span>
+          </label>
+          <button
+            onClick={() => setShowStudentSheet(true)}
+            className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm transition-colors hover:bg-gray-100"
+          >
+            <span className={selectedStudents.size > 0 ? 'font-semibold text-black' : 'text-gray-400'}>
+              {selectedStudents.size > 0
+                ? `${selectedStudents.size} học sinh đã chọn`
+                : 'Chọn học sinh…'}
+            </span>
+            <ChevronRight size={16} className="text-gray-400" />
+          </button>
+
+          {/* Selected chips */}
+          {selectedStudents.size > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MOCK_STUDENTS.filter((s) => selectedStudents.has(s.id)).map((s) => (
+                <div key={s.id} className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1">
+                  <span className="text-xs font-semibold text-black">{s.name.split(' ').pop()}</span>
+                  <button onClick={() => toggleStudent(s.id)} className="text-gray-400 hover:text-black">
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-        {filtered.map((p) => (
-          <label key={p.id} className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-gray-50">
-            <input
-              type={mode === 'single' ? 'radio' : 'checkbox'}
-              name={mode === 'single' ? 'parent' : undefined}
-              checked={selected.has(p.id)}
-              onChange={(e) => {
-                if (mode === 'single') {
-                  setSelected(new Set([p.id]))
-                } else {
-                  const s = new Set(selected)
-                  e.target.checked ? s.add(p.id) : s.delete(p.id)
-                  setSelected(s)
-                }
-              }}
-              className="h-4 w-4 accent-black"
-            />
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
-              {initials(p.name)}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-black">{p.name}</p>
-              <p className="text-xs text-gray-500">PH bé {p.studentName}</p>
-            </div>
-          </label>
-        ))}
-      </div>
-
+      {/* Sticky footer CTA */}
       <div className="border-t border-gray-100 bg-white px-4 py-3">
         <button
-          disabled={selected.size === 0}
-          className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-30 hover:bg-gray-900"
+          disabled={!isValid}
+          onClick={() => setShowConfirm(true)}
+          className="w-full rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-30"
         >
-          {mode === 'single' ? 'Nhắn tin' : mode === 'multiple' ? `Tạo nhóm (${selected.size} người)` : 'Tạo nhóm cả lớp'}
+          Tạo nhóm
         </button>
       </div>
-    </>
+
+      {/* Bottom sheet — Chọn lớp */}
+      {showClassSheet && (
+        <div className="absolute inset-0 z-30 flex items-end">
+          <button className="absolute inset-0 bg-black/40" onClick={() => setShowClassSheet(false)} aria-label="Đóng" />
+          <div className="relative w-full rounded-t-3xl bg-white px-5 pt-5 pb-8">
+            <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-gray-200" />
+            <button onClick={() => setShowClassSheet(false)} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+              <X size={16} className="text-gray-600" />
+            </button>
+            <h3 className="mb-4 text-base font-bold text-black">Chọn lớp</h3>
+            <div className="space-y-2">
+              {CLASSES.map((cls) => (
+                <button
+                  key={cls}
+                  onClick={() => { setSelectedClass(cls); setShowClassSheet(false) }}
+                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                    selectedClass === cls
+                      ? 'border-black bg-black text-white'
+                      : 'border-gray-200 bg-gray-50 text-black hover:bg-gray-100'
+                  }`}
+                >
+                  Lớp {cls}
+                  {selectedClass === cls && (
+                    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 8l4 4 8-8" /></svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet — Chọn học sinh */}
+      {showStudentSheet && (
+        <div className="absolute inset-0 z-30 flex items-end">
+          <button className="absolute inset-0 bg-black/40" onClick={() => setShowStudentSheet(false)} aria-label="Đóng" />
+          <div className="relative flex max-h-[75%] w-full flex-col rounded-t-3xl bg-white">
+            <div className="shrink-0 px-5 pt-5 pb-3">
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
+              <button onClick={() => setShowStudentSheet(false)} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                <X size={16} className="text-gray-600" />
+              </button>
+              <h3 className="mb-3 text-base font-bold text-black">Chọn học sinh</h3>
+              <div className="relative mb-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm học sinh…"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-gray-400"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto divide-y divide-gray-100 px-5">
+              {filteredStudents.map((s) => (
+                <label key={s.id} className="flex cursor-pointer items-center gap-3 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.has(s.id)}
+                    onChange={() => toggleStudent(s.id)}
+                    className="h-4 w-4 accent-black"
+                  />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                    {initials(s.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-black">{s.name}</p>
+                    <p className="text-xs text-gray-400">{s.code}</p>
+                  </div>
+                  {selectedStudents.has(s.id) && (
+                    <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center">
+                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 8l4 4 8-8" /></svg>
+                    </div>
+                  )}
+                </label>
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-gray-100 px-5 py-3">
+              <button
+                onClick={() => setShowStudentSheet(false)}
+                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+              >
+                Xác nhận ({selectedStudents.size} học sinh)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm pop-up */}
+      {showConfirm && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-1 text-base font-bold text-black">Xác nhận tạo nhóm</h3>
+            <p className="mb-1 text-sm text-gray-600">
+              Tên nhóm: <span className="font-semibold text-black">{groupName}</span>
+            </p>
+            <p className="mb-1 text-sm text-gray-600">
+              Lớp: <span className="font-semibold text-black">Lớp {selectedClass}</span>
+            </p>
+            <p className="mb-5 text-sm text-gray-600">
+              Thành viên: <span className="font-semibold text-black">{selectedStudents.size} học sinh</span>
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleCreate}
+                className="flex-1 rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+              >
+                Tạo nhóm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

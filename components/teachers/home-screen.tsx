@@ -120,7 +120,7 @@ interface TeachersHomeScreenProps {
 }
 
 export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, onNavigateToMessaging }: TeachersHomeScreenProps) {
-  const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('none')
+  const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('none' as CheckInStatus)
   const [checkInTime, setCheckInTime] = useState<string>()
   const [checkOutTime, setCheckOutTime] = useState<string>()
 
@@ -142,28 +142,12 @@ export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, 
           <span className="text-sm font-semibold text-black">ECO School Giao viên</span>
         </div>
         {/* Check-in button */}
-        <div className="flex items-center gap-2">
-          {checkInStatus !== 'none' && (
-            <div className="flex flex-col items-end gap-0.5">
-              {checkInTime && (
-                <p className="text-[9px] text-gray-600 font-medium">
-                  V: {checkInTime}
-                </p>
-              )}
-              {checkOutTime && (
-                <p className="text-[9px] text-gray-600 font-medium">
-                  R: {checkOutTime}
-                </p>
-              )}
-            </div>
-          )}
-          <CheckInButton
-            status={checkInStatus}
-            checkInTime={checkInTime}
-            checkOutTime={checkOutTime}
-            onStatusChange={handleCheckInStatusChange}
-          />
-        </div>
+        <CheckInButton
+          status={checkInStatus}
+          checkInTime={checkInTime}
+          checkOutTime={checkOutTime}
+          onStatusChange={handleCheckInStatusChange}
+        />
       </div>
 
       {/* ── Promo banner ───────────────────────────────────────────────────── */}

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { X, LogIn, LogOut, CheckCheck, Camera, Clock } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { X, LogIn, LogOut, History, Camera } from 'lucide-react'
 
-export type CheckInStatus = 'none' | 'checked-in' | 'checked-out'
+export type CheckInStatus = 'none' | 'checked-in' | 'checked-out' | 'absent'
 
 interface CheckInButtonProps {
   status: CheckInStatus
@@ -12,15 +12,15 @@ interface CheckInButtonProps {
   onStatusChange: (status: CheckInStatus, checkInTime?: string, checkOutTime?: string) => void
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function useLiveTime() {
-  const [time, setTime] = useState(() => {
-    const now = new Date()
-    return now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  })
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  )
   useEffect(() => {
     const id = setInterval(() => {
-      const now = new Date()
-      setTime(now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+      setTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
     }, 1000)
     return () => clearInterval(id)
   }, [])
@@ -28,13 +28,11 @@ function useLiveTime() {
 }
 
 function getHHMM() {
-  const now = new Date()
-  return now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  return new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 }
 
-function getTodayLabel() {
-  const now = new Date()
-  return now.toLocaleDateString('vi-VN', {
+function getTodayFull() {
+  return new Date().toLocaleDateString('vi-VN', {
     weekday: 'long',
     day: '2-digit',
     month: '2-digit',
@@ -42,175 +40,220 @@ function getTodayLabel() {
   })
 }
 
-// ─── Icon States ─────────────────────────────────────────────────────────────
+function getTodayShort() {
+  return new Date().toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
 
-function CheckInIcon({ status, checkInTime, checkOutTime }: {
-  status: CheckInStatus
-  checkInTime?: string
-  checkOutTime?: string
-}) {
-  if (status === 'checked-out') {
+// ─── Trigger Icon ─────────────────────────────────────────────────────────────
+// none        → LogIn  (border circle, idle)
+// checked-in  → LogOut (filled black circle, CTA to check out)
+// checked-out → History (border circle, view record)
+// absent      → History (border circle, view absence note)
+
+function TriggerIcon({ status }: { status: CheckInStatus }) {
+  const base = 'flex h-8 w-8 items-center justify-center rounded-full transition-colors active:scale-95'
+  if (status === 'none') {
     return (
-      <div className="flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2 py-1">
-        <CheckCheck size={12} className="text-black" strokeWidth={2.5} />
-        <span className="text-[10px] font-semibold leading-none text-black">
-          {checkInTime} – {checkOutTime}
-        </span>
+      <div className={`${base} border border-gray-300 bg-white hover:bg-gray-50`}>
+        <LogIn size={15} className="text-black" strokeWidth={2} />
       </div>
     )
   }
   if (status === 'checked-in') {
     return (
-      <div className="flex items-center gap-1 rounded-full bg-black px-2 py-1">
-        <Clock size={11} className="text-white" strokeWidth={2.5} />
-        <span className="text-[10px] font-semibold leading-none text-white">
-          {checkInTime}
-        </span>
+      <div className={`${base} bg-black hover:bg-gray-900`}>
+        <LogOut size={15} className="text-white" strokeWidth={2} />
       </div>
     )
   }
-  // none
+  // checked-out or absent → History
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 bg-white transition-colors hover:bg-gray-50 active:bg-gray-100">
-      <LogIn size={16} className="text-black" strokeWidth={2} />
+    <div className={`${base} border border-gray-300 bg-white hover:bg-gray-50`}>
+      <History size={15} className="text-black" strokeWidth={2} />
     </div>
   )
 }
 
-// ─── Camera Overlay ───────────────────────────────────────────────────────────
+// ─── Camera Screen ────────────────────────────────────────────────────────────
 
-interface CameraOverlayProps {
+interface CameraScreenProps {
   mode: 'check-in' | 'check-out'
   checkInTime?: string
   onConfirm: (time: string) => void
   onCancel: () => void
 }
 
-function CameraOverlay({ mode, checkInTime, onConfirm, onCancel }: CameraOverlayProps) {
+function CameraScreen({ mode, checkInTime, onConfirm, onCancel }: CameraScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [streaming, setStreaming] = useState(false)
-  const [error, setError] = useState(false)
+  const [cameraError, setCameraError] = useState(false)
+  const [captured, setCaptured] = useState(false)
+  const [capturedDataUrl, setCapturedDataUrl] = useState<string | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const liveTime = useLiveTime()
+  const capturedTime = useRef<string>('')
 
   useEffect(() => {
-    let stream: MediaStream | null = null
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: 'user' }, audio: false })
       .then((s) => {
-        stream = s
-        if (videoRef.current) {
-          videoRef.current.srcObject = s
-        }
+        streamRef.current = s
+        if (videoRef.current) videoRef.current.srcObject = s
         setStreaming(true)
       })
-      .catch(() => setError(true))
+      .catch(() => setCameraError(true))
     return () => {
-      stream?.getTracks().forEach((t) => t.stop())
+      streamRef.current?.getTracks().forEach((t) => t.stop())
     }
   }, [])
+
+  const handleCapture = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    canvas.width = video.videoWidth || 300
+    canvas.height = video.videoHeight || 400
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.save()
+      ctx.scale(-1, 1)
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)
+      ctx.restore()
+    }
+    capturedTime.current = getHHMM()
+    setCapturedDataUrl(canvas.toDataURL('image/jpeg', 0.85))
+    setCaptured(true)
+    // stop camera after capture
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+  }, [])
+
+  const handleConfirm = () => {
+    onConfirm(capturedTime.current || getHHMM())
+  }
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-black">
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
+      <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-3">
         <p className="text-sm font-bold text-white">
           {mode === 'check-in' ? 'Điểm danh vào' : 'Điểm danh ra về'}
         </p>
-        <button
-          onClick={onCancel}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10"
-        >
-          <X size={16} className="text-white" />
-        </button>
+        {mode === 'check-out' && checkInTime && (
+          <span className="text-xs text-gray-400">Vào lúc {checkInTime}</span>
+        )}
       </div>
 
-      {/* Viewfinder */}
+      {/* Viewfinder / Preview */}
       <div className="relative mx-5 flex-1 overflow-hidden rounded-2xl bg-gray-900">
-        {error ? (
+        {cameraError && !captured && (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
             <Camera size={40} className="text-gray-500" />
-            <p className="text-sm text-gray-400">
-              Không truy cập được camera.
-            </p>
-            <button
-              onClick={() => onConfirm(getHHMM())}
-              className="mt-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
-            >
-              Xác nhận không có ảnh
-            </button>
+            <p className="text-sm text-gray-400">Không truy cập được camera.</p>
           </div>
-        ) : (
-          <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-              style={{ transform: 'scaleX(-1)' }}
-            />
-            {/* Oval face guide */}
-            {streaming && (
-              <div
-                className="pointer-events-none absolute inset-0 flex items-center justify-center"
-              >
-                <div
-                  className="rounded-full border-2 border-white/60"
-                  style={{ width: 150, height: 190 }}
-                />
-              </div>
-            )}
-          </>
         )}
-        {/* Live clock overlay */}
+
+        {/* Live video — hidden once captured */}
+        {!cameraError && (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`h-full w-full object-cover ${captured ? 'hidden' : 'block'}`}
+            style={{ transform: 'scaleX(-1)' }}
+          />
+        )}
+
+        {/* Canvas capture target (always rendered, invisible) */}
+        <canvas ref={canvasRef} className="hidden" />
+
+        {/* Captured preview */}
+        {captured && capturedDataUrl && (
+          <img
+            src={capturedDataUrl}
+            alt="Captured"
+            className="h-full w-full object-cover"
+          />
+        )}
+
+        {/* Oval face guide — only while live */}
+        {streaming && !captured && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="rounded-full border-2 border-white/50" style={{ width: 148, height: 188 }} />
+          </div>
+        )}
+
+        {/* "Ảnh đã chụp" badge — appears after capture */}
+        {captured && (
+          <div className="absolute inset-x-0 bottom-14 flex justify-center">
+            <span className="rounded-full bg-black/60 px-4 py-1.5 text-xs font-semibold text-white">
+              Ảnh đã chụp
+            </span>
+          </div>
+        )}
+
+        {/* Live clock */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1">
-          <span className="text-xs font-semibold tabular-nums text-white">{liveTime}</span>
+          <span className="text-xs font-semibold tabular-nums text-white">
+            {captured ? capturedTime.current : liveTime.slice(0, 5)}
+          </span>
         </div>
       </div>
 
-      {/* Previous stamp */}
-      {mode === 'check-out' && checkInTime && (
-        <p className="mt-2 text-center text-xs text-gray-400">
-          Vào lúc {checkInTime}
-        </p>
-      )}
+      {/* Bottom CTA row */}
+      <div className="shrink-0 px-5 py-5">
+        {/* Shutter button — shown before capture */}
+        {!captured && !cameraError && (
+          <div className="flex items-center justify-center pb-1">
+            <button
+              onClick={handleCapture}
+              className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-white/20 transition-transform active:scale-95"
+            >
+              <div className="h-12 w-12 rounded-full bg-white" />
+            </button>
+          </div>
+        )}
 
-      {/* Shutter row */}
-      <div className="flex shrink-0 items-center justify-center py-5">
-        {!error && (
-          <button
-            onClick={() => onConfirm(getHHMM())}
-            className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-white/20 transition-transform active:scale-95"
-          >
-            <div className="h-12 w-12 rounded-full bg-white" />
-          </button>
+        {/* Huỷ / Xác nhận — shown after capture (or on camera error) */}
+        {(captured || cameraError) && (
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 rounded-xl border border-gray-600 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              Huỷ
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="flex-1 rounded-xl bg-white py-3.5 text-sm font-semibold text-black transition-colors hover:bg-gray-100"
+            >
+              Xác nhận
+            </button>
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-// ─── Confirm Absent Modal ─────────────────────────────────────────────────────
+// ─── Absent Confirmation Sheet ────────────────────────────────────────────────
 
-interface AbsentModalProps {
+interface AbsentSheetProps {
   onConfirm: () => void
   onCancel: () => void
 }
 
-function AbsentModal({ onConfirm, onCancel }: AbsentModalProps) {
+function AbsentSheet({ onConfirm, onCancel }: AbsentSheetProps) {
   return (
     <div className="absolute inset-0 z-40 flex items-end">
-      {/* Backdrop */}
-      <button
-        className="absolute inset-0 bg-black/40"
-        onClick={onCancel}
-        aria-label="Đóng"
-      />
-      {/* Sheet */}
+      <button className="absolute inset-0 bg-black/40" onClick={onCancel} aria-label="Đóng" />
       <div className="relative w-full rounded-t-3xl bg-white px-6 pt-5 pb-8">
-        {/* Handle */}
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
-        {/* Close */}
         <button
           onClick={onCancel}
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100"
@@ -220,7 +263,7 @@ function AbsentModal({ onConfirm, onCancel }: AbsentModalProps) {
         <h3 className="mb-2 text-base font-bold text-black">Xác nhận vắng mặt</h3>
         <p className="mb-6 text-sm leading-relaxed text-gray-600">
           Bạn vui lòng xác nhận vắng mặt hôm nay{' '}
-          <span className="font-semibold text-black">{getTodayLabel()}</span>.
+          <span className="font-semibold text-black">{getTodayFull()}</span>.
         </p>
         <div className="flex gap-3">
           <button
@@ -241,9 +284,11 @@ function AbsentModal({ onConfirm, onCancel }: AbsentModalProps) {
   )
 }
 
-// ─── Main Modal ───────────────────────────────────────────────────────────────
+// ─── Main Bottom Sheet ────────────────────────────────────────────────────────
 
-interface MainModalProps {
+type ModalState = 'none' | 'main' | 'absent' | 'camera-in' | 'camera-out'
+
+interface MainSheetProps {
   status: CheckInStatus
   checkInTime?: string
   checkOutTime?: string
@@ -254,7 +299,7 @@ interface MainModalProps {
   onClose: () => void
 }
 
-function MainModal({
+function MainSheet({
   status,
   checkInTime,
   checkOutTime,
@@ -263,29 +308,99 @@ function MainModal({
   onCheckOut,
   onAbsent,
   onClose,
-}: MainModalProps) {
-  const isCheckedOut = status === 'checked-out'
+}: MainSheetProps) {
+  // ── History view: checked-out ──────────────────────────────────────────────
+  if (status === 'checked-out') {
+    return (
+      <div className="absolute inset-0 z-40 flex items-end">
+        <button className="absolute inset-0 bg-black/40" onClick={onClose} aria-label="Đóng" />
+        <div className="relative w-full rounded-t-3xl bg-white px-6 pt-5 pb-8">
+          <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-gray-200" />
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100"
+          >
+            <X size={16} className="text-gray-600" />
+          </button>
 
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+            Lịch sử hôm nay
+          </p>
+
+          {/* Date row */}
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-sm font-bold text-black">{getTodayShort()}</span>
+          </div>
+
+          {/* Time rows */}
+          <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Giờ vào</span>
+              <span className="text-sm font-bold text-black">{checkInTime ?? '—'}</span>
+            </div>
+            <div className="h-px bg-gray-200" />
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Giờ ra</span>
+              <span className="text-sm font-bold text-black">{checkOutTime ?? '—'}</span>
+            </div>
+          </div>
+
+          {/* Reset note */}
+          <p className="mt-4 text-xs leading-relaxed text-gray-400">
+            Thông tin sẽ được cập nhật mới vào 00:00 ngày tiếp theo.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── History view: absent ───────────────────────────────────────────────────
+  if (status === 'absent') {
+    return (
+      <div className="absolute inset-0 z-40 flex items-end">
+        <button className="absolute inset-0 bg-black/40" onClick={onClose} aria-label="Đóng" />
+        <div className="relative w-full rounded-t-3xl bg-white px-6 pt-5 pb-8">
+          <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-gray-200" />
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100"
+          >
+            <X size={16} className="text-gray-600" />
+          </button>
+
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+            Lịch sử hôm nay
+          </p>
+
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-sm font-bold text-black">{getTodayShort()}</span>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4">
+            <p className="text-sm text-gray-700">
+              Bạn đã xác nhận vắng mặt hôm nay.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Action view: none (check-in) or checked-in (check-out) ────────────────
   return (
     <div className="absolute inset-0 z-40 flex items-end">
-      {/* Backdrop */}
-      <button
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-        aria-label="Đóng"
-      />
-      {/* Sheet */}
+      <button className="absolute inset-0 bg-black/40" onClick={onClose} aria-label="Đóng" />
       <div className="relative w-full overflow-hidden rounded-t-3xl bg-white">
-        {/* Top banner with live time */}
-        <div className="flex items-start justify-between bg-black px-6 pb-5 pt-6">
+        {/* Black banner */}
+        <div className="flex items-start justify-between bg-black px-6 pb-6 pt-6">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
               Thời gian hiện tại
             </p>
-            <p className="mt-1 text-4xl font-bold tabular-nums leading-none text-white">
+            <p className="mt-1 font-mono text-4xl font-bold tabular-nums leading-none text-white">
               {liveTime.slice(0, 5)}
             </p>
-            <p className="mt-1.5 text-xs text-gray-400">{getTodayLabel()}</p>
+            <p className="mt-1.5 text-xs text-gray-400">{getTodayFull()}</p>
           </div>
           <button
             onClick={onClose}
@@ -295,69 +410,35 @@ function MainModal({
           </button>
         </div>
 
-        {/* Existing stamps if any */}
-        {(checkInTime || checkOutTime) && (
-          <div className="flex items-center gap-4 border-b border-gray-100 px-6 py-3">
-            {checkInTime && (
-              <div className="flex items-center gap-1.5">
-                <LogIn size={13} className="text-gray-500" />
-                <span className="text-xs text-gray-600">Vào <span className="font-semibold text-black">{checkInTime}</span></span>
-              </div>
-            )}
-            {checkOutTime && (
-              <div className="flex items-center gap-1.5">
-                <LogOut size={13} className="text-gray-500" />
-                <span className="text-xs text-gray-600">Ra <span className="font-semibold text-black">{checkOutTime}</span></span>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* CTAs */}
-        <div className="px-6 py-5 space-y-3">
-          {!isCheckedOut && (
+        <div className="space-y-3 px-6 py-5 pb-8">
+          {status === 'none' && (
             <>
-              {status === 'none' && (
-                <>
-                  <button
-                    onClick={onCheckIn}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
-                  >
-                    <LogIn size={16} strokeWidth={2.5} />
-                    Điểm danh vào
-                  </button>
-                  <button
-                    onClick={onAbsent}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-3.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                  >
-                    Vắng mặt
-                  </button>
-                </>
-              )}
-              {status === 'checked-in' && (
-                <button
-                  onClick={onCheckOut}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
-                >
-                  <LogOut size={16} strokeWidth={2.5} />
-                  Điểm danh ra về
-                </button>
-              )}
+              <button
+                onClick={onCheckIn}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+              >
+                <LogIn size={16} strokeWidth={2.5} />
+                Điểm danh vào
+              </button>
+              <button
+                onClick={onAbsent}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-3.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Vắng mặt
+              </button>
             </>
           )}
-          {isCheckedOut && (
-            <div className="flex flex-col items-center gap-1 py-3">
-              <CheckCheck size={24} className="text-black" />
-              <p className="text-sm font-semibold text-black">Đã điểm danh đủ hôm nay</p>
-              <p className="text-xs text-gray-500">
-                Vào {checkInTime} · Ra {checkOutTime}
-              </p>
-            </div>
+          {status === 'checked-in' && (
+            <button
+              onClick={onCheckOut}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+            >
+              <LogOut size={16} strokeWidth={2.5} />
+              Điểm danh ra về
+            </button>
           )}
         </div>
-
-        {/* Safe-area spacer */}
-        <div className="h-2" />
       </div>
     </div>
   )
@@ -369,13 +450,10 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
   return (
     <div
       className={`absolute bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-black px-4 py-2 shadow-lg transition-all duration-300 ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
+        visible ? 'opacity-100 translate-y-0' : 'pointer-events-none translate-y-2 opacity-0'
       }`}
     >
-      <div className="flex items-center gap-2">
-        <CheckCheck size={13} className="text-white" strokeWidth={2.5} />
-        <span className="whitespace-nowrap text-xs font-semibold text-white">{message}</span>
-      </div>
+      <span className="whitespace-nowrap text-xs font-semibold text-white">{message}</span>
     </div>
   )
 }
@@ -383,7 +461,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 // ─── Root Export ──────────────────────────────────────────────────────────────
 
 export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChange }: CheckInButtonProps) {
-  const [modal, setModal] = useState<'none' | 'main' | 'absent' | 'camera-in' | 'camera-out'>('none')
+  const [modal, setModal] = useState<ModalState>('none')
   const [toast, setToast] = useState({ visible: false, message: '' })
   const liveTime = useLiveTime()
 
@@ -394,7 +472,7 @@ export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChang
 
   const handleCameraConfirm = (time: string) => {
     if (modal === 'camera-in') {
-      onStatusChange('checked-in', time)
+      onStatusChange('checked-in', time, checkOutTime)
       showToast('Điểm danh vào thành công')
     } else if (modal === 'camera-out') {
       onStatusChange('checked-out', checkInTime, time)
@@ -404,25 +482,25 @@ export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChang
   }
 
   const handleAbsentConfirm = () => {
-    onStatusChange('none')
+    onStatusChange('absent', undefined, undefined)
     showToast('Đã xác nhận vắng mặt hôm nay')
     setModal('none')
   }
 
   return (
     <>
-      {/* The trigger button */}
+      {/* Trigger */}
       <button
         onClick={() => setModal('main')}
         className="flex items-center transition-transform active:scale-95"
         aria-label="Điểm danh"
       >
-        <CheckInIcon status={status} checkInTime={checkInTime} checkOutTime={checkOutTime} />
+        <TriggerIcon status={status} />
       </button>
 
-      {/* Camera overlays — absolute inside the phone screen */}
+      {/* Camera screen */}
       {(modal === 'camera-in' || modal === 'camera-out') && (
-        <CameraOverlay
+        <CameraScreen
           mode={modal === 'camera-in' ? 'check-in' : 'check-out'}
           checkInTime={checkInTime}
           onConfirm={handleCameraConfirm}
@@ -432,7 +510,7 @@ export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChang
 
       {/* Absent confirmation sheet */}
       {modal === 'absent' && (
-        <AbsentModal
+        <AbsentSheet
           onConfirm={handleAbsentConfirm}
           onCancel={() => setModal('main')}
         />
@@ -440,7 +518,7 @@ export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChang
 
       {/* Main bottom sheet */}
       {modal === 'main' && (
-        <MainModal
+        <MainSheet
           status={status}
           checkInTime={checkInTime}
           checkOutTime={checkOutTime}

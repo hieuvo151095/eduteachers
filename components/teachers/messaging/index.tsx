@@ -44,57 +44,46 @@ const EXTRA_CONVERSATIONS: Conversation[] = [
     lastMessageTime: 'T2',
     unreadCount: 0,
   },
-  // ── direct chats — Lớp 6A2
-  {
-    id: 'conv-d-6a2-1',
-    type: 'direct',
-    participantIds: ['teacher-1', 'parent-6a2-1'],
-    displayName: 'PH bé Tuấn Kiệt',
-    lastMessage: 'Cảm ơn cô đã nhắn ạ',
-    lastMessageTime: '08:30',
-    unreadCount: 0,
-  },
-  {
-    id: 'conv-d-6a2-2',
-    type: 'direct',
-    participantIds: ['teacher-1', 'parent-6a2-2'],
-    displayName: 'PH bé Thanh Mai',
-    lastMessage: 'Dạ em ghi nhận ạ',
-    lastMessageTime: '07:55',
-    unreadCount: 0,
-  },
-  // ── direct chats — Lớp 8A1
-  {
-    id: 'conv-d-8a1-1',
-    type: 'direct',
-    participantIds: ['teacher-1', 'parent-8a1-1'],
-    displayName: 'PH bé Đức Minh (8A1)',
-    lastMessage: 'Bé bị ho cô nhé',
-    lastMessageTime: 'Hôm qua',
-    unreadCount: 1,
-  },
-  {
-    id: 'conv-d-8a1-2',
-    type: 'direct',
-    participantIds: ['teacher-1', 'parent-8a1-2'],
-    displayName: 'PH bé Anh Thư (8A1)',
-    lastMessage: 'Sáng mai bé đến muộn cô ơi',
-    lastMessageTime: 'T4',
-    unreadCount: 0,
-  },
-  // ── direct chat — Lớp 7B1
-  {
-    id: 'conv-d-7b1-1',
-    type: 'direct',
-    participantIds: ['teacher-1', 'parent-7b1-1'],
-    displayName: 'PH bé Minh Tú (7B1)',
-    lastMessage: 'Con bị ốm cô nhé ạ',
-    lastMessageTime: 'T2',
-    unreadCount: 0,
-  },
+  // ── direct chats — Lớp 6A2 (5 parents)
+  { id: 'conv-d-6a2-1', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-1'],
+    displayName: 'PH bé Tuấn Kiệt (6A2)', lastMessage: 'Cảm ơn cô đã nhắn ạ', lastMessageTime: '08:30', unreadCount: 0 },
+  { id: 'conv-d-6a2-2', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-2'],
+    displayName: 'PH bé Thanh Mai (6A2)', lastMessage: 'Dạ em ghi nhận ạ', lastMessageTime: '07:55', unreadCount: 0 },
+  { id: 'conv-d-6a2-3', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-3'],
+    displayName: 'PH bé Bảo Châu (6A2)', lastMessage: 'Bạn: Con có bài kiểm tra ngày mai nhé', lastMessageTime: 'Hôm qua', unreadCount: 0 },
+  { id: 'conv-d-6a2-4', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-4'],
+    displayName: 'PH bé Gia Hân (6A2)', lastMessage: 'Bé sẽ đi muộn sáng nay cô ơi', lastMessageTime: 'T4', unreadCount: 2 },
+  { id: 'conv-d-6a2-5', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-5'],
+    displayName: 'PH bé Đăng Khôi (6A2)', lastMessage: 'Cô ơi con xin nghỉ hôm nay ạ', lastMessageTime: 'T3', unreadCount: 0 },
+  // ── direct chats — Lớp 8A1 (5 parents)
+  { id: 'conv-d-8a1-1', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-1'],
+    displayName: 'PH bé Đức Minh (8A1)', lastMessage: 'Bé bị ho cô nhé', lastMessageTime: 'Hôm qua', unreadCount: 1 },
+  { id: 'conv-d-8a1-2', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-2'],
+    displayName: 'PH bé Anh Thư (8A1)', lastMessage: 'Sáng mai bé đến muộn cô ơi', lastMessageTime: 'T4', unreadCount: 0 },
+  { id: 'conv-d-8a1-3', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-3'],
+    displayName: 'PH bé Thị Ngọc (8A1)', lastMessage: 'Bạn: Cô xác nhận giúp bé ạ', lastMessageTime: 'T3', unreadCount: 0 },
+  { id: 'conv-d-8a1-4', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-4'],
+    displayName: 'PH bé Văn Nam (8A1)', lastMessage: 'Con bị sốt, xin phép nghỉ ạ', lastMessageTime: 'T2', unreadCount: 3 },
+  { id: 'conv-d-8a1-5', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-5'],
+    displayName: 'PH bé Quang Huy (8A1)', lastMessage: 'Dạ cảm ơn cô nhiều ạ', lastMessageTime: 'T2', unreadCount: 0 },
+  // ── direct chats — Lớp 7B1 (5 parents)
+  { id: 'conv-d-7b1-1', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-1'],
+    displayName: 'PH bé Minh Tú (7B1)', lastMessage: 'Con bị ốm cô nhé ạ', lastMessageTime: 'T2', unreadCount: 0 },
+  { id: 'conv-d-7b1-2', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-2'],
+    displayName: 'PH bé Thị Lan (7B1)', lastMessage: 'Bạn: Cô nhớ nhắc con học bài nhé', lastMessageTime: 'T2', unreadCount: 0 },
+  { id: 'conv-d-7b1-3', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-3'],
+    displayName: 'PH bé Minh An (7B1)', lastMessage: 'Con xin nghỉ chiều nay ạ', lastMessageTime: 'T3', unreadCount: 1 },
+  { id: 'conv-d-7b1-4', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-4'],
+    displayName: 'PH bé Quỳnh Anh (7B1)', lastMessage: 'Bé cần xin phép cô ạ', lastMessageTime: 'T4', unreadCount: 0 },
+  { id: 'conv-d-7b1-5', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-5'],
+    displayName: 'PH bé Thị Hoa (7B1)', lastMessage: 'Cảm ơn cô đã quan tâm ạ', lastMessageTime: 'Hôm qua', unreadCount: 0 },
 ]
 
-const ALL_CONVERSATIONS: Conversation[] = [...MOCK_CONVERSATIONS, ...EXTRA_CONVERSATIONS]
+// Base conversations — dynamically extended when groups are created
+const BASE_CONVERSATIONS: Conversation[] = [...MOCK_CONVERSATIONS, ...EXTRA_CONVERSATIONS]
+function getAllConversations() {
+  return [...BASE_CONVERSATIONS, ...DYNAMIC_GROUPS.map((g) => g.conv)]
+}
 
 // 15 mock students
 const MOCK_STUDENTS = Array.from({ length: 15 }, (_, i) => ({
@@ -179,12 +168,16 @@ interface MessagingAppProps {
   onBack: () => void
 }
 
+// Mutable store for dynamically created groups (lives outside component to persist across re-renders)
+const DYNAMIC_GROUPS: { conv: Conversation; systemMsg: string }[] = []
+
 export function MessagingApp({ onBack }: MessagingAppProps) {
   const [screen, setScreen] = useState<MessagingScreen>({ type: 'list' })
   const [activeClassFilter, setActiveClassFilter] = useState('6A2')
   const [pinnedMessages, setPinnedMessages] = useState<Set<string>>(new Set(['gmsg-1']))
   const [allParentsReadOnly, setAllParentsReadOnly] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null)
+  const [, forceUpdate] = useState(0)
 
   const handleTogglePinMessage = (messageId: string) => {
     setPinnedMessages((prev) => {
@@ -205,7 +198,7 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
           activeClassFilter={activeClassFilter}
           onClassFilterChange={setActiveClassFilter}
           onSelectConversation={(id) => {
-            const conv = ALL_CONVERSATIONS.find((c) => c.id === id)
+            const conv = getAllConversations().find((c) => c.id === id)
             setScreen({ type: conv?.type === 'group' ? 'group' : 'direct', conversationId: id })
           }}
           onCreateGroup={() => setScreen({ type: 'create-group', defaultClass: activeClassFilter })}
@@ -245,7 +238,23 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
       {screen.type === 'create-group' && (
         <ScreenCreateGroup
           defaultClass={screen.defaultClass}
-          onCreated={() => setScreen({ type: 'list' })}
+          onCreated={(groupName) => {
+            const newId = `conv-dynamic-${Date.now()}`
+            DYNAMIC_GROUPS.push({
+              conv: {
+                id: newId,
+                type: 'group',
+                participantIds: Array.from({ length: 4 }, (_, i) => `dyn-${i}`),
+                displayName: groupName,
+                lastMessage: 'Nhóm trao đổi được tạo bởi Cô Nguyễn Hồng',
+                lastMessageTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                unreadCount: 0,
+              },
+              systemMsg: 'Nhóm trao đổi được tạo bởi Cô Nguyễn Hồng',
+            })
+            forceUpdate((n) => n + 1)
+            setScreen({ type: 'group', conversationId: newId })
+          }}
           onBack={() => setScreen({ type: 'list' })}
         />
       )}
@@ -278,46 +287,16 @@ const CLASS_FILTERS = ['6A2', '8A1', '7B1']
 
 function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversation, onCreateGroup, onBack }: ScreenListProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  // FAB drag-to-delete state
-  const [fabPos, setFabPos] = useState({ x: 0, y: 0 })
-  const [dragging, setDragging] = useState(false)
-  const [overDelete, setOverDelete] = useState(false)
-  const fabRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const filtered = ALL_CONVERSATIONS.filter((c) => {
+  const filtered = getAllConversations().filter((c) => {
     const matchesSearch = c.displayName.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesClass = activeClassFilter === '' || c.displayName.includes(activeClassFilter)
     return matchesSearch && matchesClass
   })
 
-  // Touch/pointer drag for FAB
-  const handleFabPointerDown = (e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId)
-    setDragging(true)
-    setFabPos({ x: 0, y: 0 })
-  }
-  const handleFabPointerMove = (e: React.PointerEvent) => {
-    if (!dragging) return
-    setFabPos({ x: e.movementX + fabPos.x, y: e.movementY + fabPos.y })
-    // Check if over the delete zone (bottom-center area)
-    const rect = e.currentTarget.getBoundingClientRect()
-    const parentRect = (e.currentTarget.closest('.messaging-list-root') as HTMLElement)?.getBoundingClientRect()
-    if (parentRect) {
-      const relY = e.clientY - parentRect.top
-      const relX = e.clientX - parentRect.left
-      const isNearDelete = relY > parentRect.height * 0.8 && relX > parentRect.width * 0.3 && relX < parentRect.width * 0.7
-      setOverDelete(isNearDelete)
-    }
-  }
-  const handleFabPointerUp = () => {
-    setDragging(false)
-    setFabPos({ x: 0, y: 0 })
-    setOverDelete(false)
-  }
-
   return (
-    <div className="messaging-list-root relative flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b border-gray-100 bg-white px-4 pb-0 pt-3">
         <div className="flex items-center gap-3 mb-3">
@@ -348,7 +327,7 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
             placeholder="Tìm lớp, phụ huynh…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-gray-400 focus:bg-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
           />
           {searchQuery && (
             <button
@@ -421,34 +400,6 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
         })}
       </div>
 
-      {/* Floating delete zone — appears while dragging */}
-      {dragging && (
-        <div className={`absolute bottom-16 left-1/2 -translate-x-1/2 flex h-14 w-14 items-center justify-center rounded-full border-2 transition-all ${
-          overDelete ? 'border-red-500 bg-red-50 scale-110' : 'border-gray-300 bg-white'
-        }`}>
-          <X size={22} className={overDelete ? 'text-red-500' : 'text-gray-400'} />
-        </div>
-      )}
-
-      {/* Floating action button (drag to delete zone) */}
-      <div
-        ref={fabRef}
-        className="absolute bottom-5 right-4 touch-none select-none"
-        style={{ transform: dragging ? `translate(${fabPos.x}px, ${fabPos.y}px)` : undefined, transition: dragging ? 'none' : 'transform 0.2s ease' }}
-        onPointerDown={handleFabPointerDown}
-        onPointerMove={handleFabPointerMove}
-        onPointerUp={handleFabPointerUp}
-        onPointerCancel={handleFabPointerUp}
-      >
-        <div className={`flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all ${
-          overDelete ? 'bg-red-500 scale-110' : 'bg-black'
-        }`}>
-          {overDelete
-            ? <X size={20} className="text-white" />
-            : <Plus size={22} className="text-white" />
-          }
-        </div>
-      </div>
     </div>
   )
 }
@@ -463,7 +414,7 @@ interface ScreenDirectChatProps {
 }
 
 function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack }: ScreenDirectChatProps) {
-  const conversation = ALL_CONVERSATIONS.find((c) => c.id === conversationId)
+  const conversation = getAllConversations().find((c) => c.id === conversationId)
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>(MOCK_MESSAGES_DIRECT)
   const [replyText, setReplyText] = useState('')
   const [showAttach, setShowAttach] = useState(false)
@@ -609,7 +560,7 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
           }}
-          className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm outline-none focus:border-gray-400 focus:bg-white"
+          className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
         />
         <button
           onClick={handleSend}
@@ -636,6 +587,7 @@ interface ScreenGroupChatProps {
 }
 
 function ScreenGroupChat({
+  conversationId,
   allParentsReadOnly,
   pinnedMessages,
   onTogglePin,
@@ -643,7 +595,20 @@ function ScreenGroupChat({
   onManage,
   onBack,
 }: ScreenGroupChatProps) {
-  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(MOCK_MESSAGES_GROUP)
+  const dynamicGroup = DYNAMIC_GROUPS.find((g) => g.conv.id === conversationId)
+  const seedMessages: ChatMessage[] = dynamicGroup
+    ? [{
+        id: `sys-${conversationId}`,
+        senderId: 'system',
+        senderName: 'Hệ thống',
+        senderRole: 'system' as never,
+        timestamp: new Date().toISOString(),
+        messageType: 'text',
+        text: dynamicGroup.systemMsg,
+      }]
+    : MOCK_MESSAGES_GROUP
+  const conversation = getAllConversations().find((c) => c.id === conversationId)
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(seedMessages)
   const [msgText, setMsgText] = useState('')
   const [showAttach, setShowAttach] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -684,7 +649,7 @@ function ScreenGroupChat({
             <ChevronLeft size={20} className="text-gray-600" />
           </button>
           <div className="flex-1 min-w-0">
-            <h2 className="truncate font-bold text-black text-sm">Nhóm Lớp 6A2</h2>
+            <h2 className="truncate font-bold text-black text-sm">{conversation?.displayName ?? 'Nhóm Lớp 6A2'}</h2>
             <p className="text-xs text-gray-500">32 thành viên</p>
           </div>
           <button onClick={onManage} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100">
@@ -719,8 +684,20 @@ function ScreenGroupChat({
       <div className="flex-1 overflow-y-auto space-y-3 px-4 py-3">
         <p className="text-center text-xs text-gray-400">Hôm nay</p>
         {localMessages.map((msg) => {
+          const isSystem = msg.senderId === 'system'
           const isTeacher = msg.senderRole === 'teacher'
           const isPinned = pinnedMessages.has(msg.id)
+
+          if (isSystem) {
+            return (
+              <div key={msg.id} className="flex justify-center py-1">
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-500 text-center leading-snug">
+                  {msg.text}
+                </span>
+              </div>
+            )
+          }
+
           return (
             <div key={msg.id} className={`group flex gap-2 ${isTeacher ? 'flex-row-reverse' : ''}`}>
               {!isTeacher && (
@@ -789,7 +766,7 @@ function ScreenGroupChat({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
           }}
-          className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm outline-none focus:border-gray-400 focus:bg-white"
+          className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
         />
         <button
           onClick={handleSend}
@@ -951,7 +928,7 @@ const CLASSES = ['6A2', '8A1', '7B1']
 
 interface ScreenCreateGroupProps {
   defaultClass: string
-  onCreated: () => void
+  onCreated: (groupName: string) => void
   onBack: () => void
 }
 
@@ -980,7 +957,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
 
   const handleCreate = () => {
     setShowConfirm(false)
-    onCreated()
+    onCreated(groupName.trim())
   }
 
   return (
@@ -1005,7 +982,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
             placeholder="Nhập tên nhóm…"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400 focus:bg-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
           />
         </div>
 
@@ -1120,7 +1097,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
                   placeholder="Tìm học sinh…"
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-gray-400"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400"
                   autoFocus
                 />
               </div>
@@ -1380,7 +1357,7 @@ function ScreenGroupManage({
               <input
                 type="text"
                 placeholder={addMode === 'student' ? 'Tên hoặc mã học sinh…' : 'Tên giáo viên…'}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-gray-400"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400"
                 autoFocus
               />
             </div>

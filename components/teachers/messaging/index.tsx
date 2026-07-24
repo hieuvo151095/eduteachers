@@ -10,7 +10,6 @@ import {
   X,
   Send,
   AlertCircle,
-  CheckCircle2,
 } from 'lucide-react'
 import {
   MOCK_CONVERSATIONS,
@@ -27,7 +26,6 @@ import {
 type MessagingScreen =
   | { type: 'list' }
   | { type: 'direct'; conversationId: string }
-  | { type: 'direct-detail'; conversationId: string; requestId: string }
   | { type: 'group'; conversationId: string }
   | { type: 'compose' }
   | { type: 'group-manage'; conversationId: string }
@@ -38,12 +36,20 @@ interface MessagingAppProps {
 
 export function MessagingApp({ onBack }: MessagingAppProps) {
   const [screen, setScreen] = useState<MessagingScreen>({ type: 'list' })
-  const [requestAcknowledged, setRequestAcknowledged] = useState<Set<string>>(new Set())
+  const [pinnedMessages, setPinnedMessages] = useState<Set<string>>(new Set())
   const [allParentsReadOnly, setAllParentsReadOnly] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null)
 
-  const handleAcknowledgeRequest = (requestId: string) => {
-    setRequestAcknowledged((prev) => new Set(prev).add(requestId))
+  const handleTogglePinMessage = (messageId: string) => {
+    setPinnedMessages((prev) => {
+      const next = new Set(prev)
+      if (next.has(messageId)) {
+        next.delete(messageId)
+      } else if (next.size < 3) {
+        next.add(messageId)
+      }
+      return next
+    })
   }
 
   return (
@@ -64,21 +70,9 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
       {screen.type === 'direct' && (
         <ScreenDirectChat
           conversationId={screen.conversationId}
-          requestAcknowledged={requestAcknowledged}
-          onAcknowledge={handleAcknowledgeRequest}
-          onViewDetail={(requestId) =>
-            setScreen({ type: 'direct-detail', conversationId: screen.conversationId, requestId })
-          }
+          pinnedMessages={pinnedMessages}
+          onTogglePin={handleTogglePinMessage}
           onBack={() => setScreen({ type: 'list' })}
-        />
-      )}
-
-      {screen.type === 'direct-detail' && (
-        <ScreenRequestDetail
-          requestId={screen.requestId}
-          requestAcknowledged={requestAcknowledged}
-          onAcknowledge={handleAcknowledgeRequest}
-          onBack={() => setScreen({ type: 'direct', conversationId: screen.conversationId })}
         />
       )}
 
@@ -221,17 +215,15 @@ function ScreenList({ onSelectConversation, onCompose, onBack }: ScreenListProps
 
 interface ScreenDirectChatProps {
   conversationId: string
-  requestAcknowledged: Set<string>
-  onAcknowledge: (requestId: string) => void
-  onViewDetail: (requestId: string) => void
+  pinnedMessages: Set<string>
+  onTogglePin: (messageId: string) => void
   onBack: () => void
 }
 
 function ScreenDirectChat({
   conversationId,
-  requestAcknowledged,
-  onAcknowledge,
-  onViewDetail,
+  pinnedMessages,
+  onTogglePin,
   onBack,
 }: ScreenDirectChatProps) {
   const conversation = MOCK_CONVERSATIONS.find((c) => c.id === conversationId)
@@ -262,56 +254,73 @@ function ScreenDirectChat({
         </button>
       </div>
 
+      {/* Pinned messages section */}
+      {pinnedMessages.size > 0 && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2">
+          <p className="text-xs font-semibold text-gray-600 mb-2">📌 Tin nhắn ghim ({pinnedMessages.size}/3)</p>
+          <div className="space-y-1">
+            {messages
+              .filter((m) => pinnedMessages.has(m.id))
+              .map((msg) => (
+                <div key={msg.id} className="bg-white rounded px-2 py-1 border-l-2 border-orange-300">
+                  <p className="text-xs font-semibold text-gray-700">{msg.senderName}</p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {msg.messageType === 'text' ? msg.text : `${msg.request?.title}...`}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         <p className="text-center text-xs text-gray-500 py-2">Hôm nay</p>
 
         {messages.map((msg) => {
           const isTeacher = msg.senderRole === 'teacher'
-          const acknowledged = msg.messageType === 'request' && requestAcknowledged.has(msg.request!.id)
+          const isPinned = pinnedMessages.has(msg.id)
 
           return (
-            <div key={msg.id} className={`flex gap-2 ${isTeacher ? 'justify-end' : 'justify-start'}`}>
+            <div key={msg.id} className={`flex gap-2 group ${isTeacher ? 'justify-end' : 'justify-start'}`}>
               {msg.messageType === 'text' ? (
-                <div
-                  className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
-                    isTeacher
-                      ? 'bg-black text-white'
-                      : 'bg-gray-200 text-black'
-                  }`}
-                >
-                  {msg.text}
+                <div className="relative max-w-xs">
+                  <div
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      isTeacher
+                        ? 'bg-black text-white'
+                        : 'bg-gray-200 text-black'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                  {isTeacher && (
+                    <button
+                      onClick={() => onTogglePin(msg.id)}
+                      className="absolute -right-6 top-0 hidden group-hover:block text-xs text-gray-500 hover:text-black transition-colors"
+                      title={isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn'}
+                    >
+                      {isPinned ? '📌' : '○'}
+                    </button>
+                  )}
                 </div>
               ) : msg.request ? (
-                <div className="max-w-sm space-y-2">
+                <div className="max-w-sm space-y-2 group">
                   <div className="rounded-lg border-2 border-orange-200 bg-orange-50 p-3">
                     <p className="text-xs font-semibold text-orange-700">
                       {msg.request.type === 'medicine' ? '💊' : '📝'} {msg.request.title} · từ Phụ huynh
                     </p>
-                    <p className="mt-1 text-xs text-gray-700">{msg.request.description}</p>
-
-                    {acknowledged ? (
-                      <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-green-600">
-                        <CheckCircle2 size={14} />
-                        Cô đã ghi nhận
-                      </div>
-                    ) : (
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          onClick={() => onAcknowledge(msg.request!.id)}
-                          className="flex-1 rounded bg-black px-2 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
-                        >
-                          Ghi nhận
-                        </button>
-                        <button
-                          onClick={() => onViewDetail(msg.request!.id)}
-                          className="text-xs text-gray-600 hover:text-black underline"
-                        >
-                          Xem chi tiết
-                        </button>
-                      </div>
-                    )}
+                    <p className="mt-2 text-xs text-gray-700">{msg.request.description}</p>
                   </div>
+                  {isTeacher && (
+                    <button
+                      onClick={() => onTogglePin(msg.id)}
+                      className="text-xs text-gray-500 hover:text-black underline transition-colors"
+                      title={isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn'}
+                    >
+                      {isPinned ? 'Bỏ ghim 📌' : 'Ghim'}
+                    </button>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -337,97 +346,6 @@ function ScreenDirectChat({
         >
           <Send size={16} />
         </button>
-      </div>
-    </>
-  )
-}
-
-// ─── SCREEN 2b: Request Detail ────────────────────────────────────────────
-
-interface ScreenRequestDetailProps {
-  requestId: string
-  requestAcknowledged: Set<string>
-  onAcknowledge: (requestId: string) => void
-  onBack: () => void
-}
-
-function ScreenRequestDetail({
-  requestId,
-  requestAcknowledged,
-  onAcknowledge,
-  onBack,
-}: ScreenRequestDetailProps) {
-  const msg = MOCK_MESSAGES_DIRECT.find((m) => m.request?.id === requestId)
-  const request = msg?.request
-
-  if (!request) return null
-
-  const acknowledged = requestAcknowledged.has(requestId)
-
-  return (
-    <>
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
-        >
-          <ChevronLeft size={20} className="text-gray-600" />
-        </button>
-        <h2 className="font-bold text-black text-sm">Chi tiết đơn</h2>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {/* Request card */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <h3 className="font-bold text-black text-sm">{request.title}</h3>
-          <p className="mt-2 text-sm text-gray-700">{request.description}</p>
-          {request.appliesDate && (
-            <p className="mt-2 text-xs text-gray-500">Áp dụng: {request.appliesDate}</p>
-          )}
-        </div>
-
-        {/* Timeline */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 size={14} className="text-green-600" />
-            </div>
-            <div className="text-xs text-gray-600">
-              <p className="font-semibold text-black">Phụ huynh đã gửi</p>
-              <p>10:02</p>
-            </div>
-          </div>
-
-          <div className="ml-4 border-l border-gray-300 h-6" />
-
-          <div className="flex items-center gap-3">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-              acknowledged ? 'bg-green-100' : 'bg-gray-200'
-            }`}>
-              <CheckCircle2 size={14} className={acknowledged ? 'text-green-600' : 'text-gray-400'} />
-            </div>
-            <div className="text-xs text-gray-600">
-              <p className="font-semibold text-black">
-                {acknowledged ? 'Cô đã ghi nhận' : 'Chờ xác nhận từ cô'}
-              </p>
-              {acknowledged && <p>Vừa xong</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        {!acknowledged && (
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={() => onAcknowledge(requestId)}
-              className="flex-1 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
-            >
-              Xác nhận đã nhận
-            </button>
-          </div>
-        )}
       </div>
     </>
   )

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { X, LogIn, LogOut, CheckCheck, Camera, Clock } from 'lucide-react'
 
 export type CheckInStatus = 'none' | 'checked-in' | 'checked-out'
 
@@ -12,228 +12,448 @@ interface CheckInButtonProps {
   onStatusChange: (status: CheckInStatus, checkInTime?: string, checkOutTime?: string) => void
 }
 
-export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChange }: CheckInButtonProps) {
-  const [showModal, setShowModal] = useState(false)
-  const [showConfirmAbsent, setShowConfirmAbsent] = useState(false)
-  const [showCamera, setShowCamera] = useState(false)
-  const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  const getCurrentTime = () => {
+function useLiveTime() {
+  const [time, setTime] = useState(() => {
     const now = new Date()
-    return now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-  }
+    return now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  })
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = new Date()
+      setTime(now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
+  return time
+}
 
-  const getTodayDate = () => {
-    const now = new Date()
-    return now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+function getHHMM() {
+  const now = new Date()
+  return now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+}
 
-  const startCamera = async () => {
-    setShowCamera(true)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
-    } catch (error) {
-      console.error('Camera access denied:', error)
-      setShowCamera(false)
-    }
-  }
+function getTodayLabel() {
+  const now = new Date()
+  return now.toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
 
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
-      tracks.forEach((track) => track.stop())
-    }
-    setShowCamera(false)
-  }
+// ─── Icon States ─────────────────────────────────────────────────────────────
 
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext('2d')
-      if (context) {
-        context.drawImage(videoRef.current, 0, 0)
-      }
-    }
-    stopCamera()
-
-    if (status === 'none') {
-      const time = getCurrentTime()
-      onStatusChange('checked-in', time)
-      setToastMessage('Điểm danh vào thành công')
-    } else if (status === 'checked-in') {
-      const time = getCurrentTime()
-      onStatusChange('checked-out', checkInTime, time)
-      setToastMessage('Điểm danh ra về thành công')
-    }
-
-    setShowToast(true)
-    setShowModal(false)
-    setTimeout(() => setShowToast(false), 3000)
-  }
-
-  const handleMarkAbsent = () => {
-    onStatusChange('none')
-    setToastMessage('Đã xác nhận vắng mặt')
-    setShowToast(true)
-    setShowModal(false)
-    setShowConfirmAbsent(false)
-    setTimeout(() => setShowToast(false), 3000)
-  }
-
-  if (showCamera) {
+function CheckInIcon({ status, checkInTime, checkOutTime }: {
+  status: CheckInStatus
+  checkInTime?: string
+  checkOutTime?: string
+}) {
+  if (status === 'checked-out') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-        <div className="rounded-lg bg-white p-4 w-[340px]">
-          <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden mb-4">
+      <div className="flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2 py-1">
+        <CheckCheck size={12} className="text-black" strokeWidth={2.5} />
+        <span className="text-[10px] font-semibold leading-none text-black">
+          {checkInTime} – {checkOutTime}
+        </span>
+      </div>
+    )
+  }
+  if (status === 'checked-in') {
+    return (
+      <div className="flex items-center gap-1 rounded-full bg-black px-2 py-1">
+        <Clock size={11} className="text-white" strokeWidth={2.5} />
+        <span className="text-[10px] font-semibold leading-none text-white">
+          {checkInTime}
+        </span>
+      </div>
+    )
+  }
+  // none
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 bg-white transition-colors hover:bg-gray-50 active:bg-gray-100">
+      <LogIn size={16} className="text-black" strokeWidth={2} />
+    </div>
+  )
+}
+
+// ─── Camera Overlay ───────────────────────────────────────────────────────────
+
+interface CameraOverlayProps {
+  mode: 'check-in' | 'check-out'
+  checkInTime?: string
+  onConfirm: (time: string) => void
+  onCancel: () => void
+}
+
+function CameraOverlay({ mode, checkInTime, onConfirm, onCancel }: CameraOverlayProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [streaming, setStreaming] = useState(false)
+  const [error, setError] = useState(false)
+  const liveTime = useLiveTime()
+
+  useEffect(() => {
+    let stream: MediaStream | null = null
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then((s) => {
+        stream = s
+        if (videoRef.current) {
+          videoRef.current.srcObject = s
+        }
+        setStreaming(true)
+      })
+      .catch(() => setError(true))
+    return () => {
+      stream?.getTracks().forEach((t) => t.stop())
+    }
+  }, [])
+
+  return (
+    <div className="absolute inset-0 z-50 flex flex-col bg-black">
+      {/* Header */}
+      <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
+        <p className="text-sm font-bold text-white">
+          {mode === 'check-in' ? 'Điểm danh vào' : 'Điểm danh ra về'}
+        </p>
+        <button
+          onClick={onCancel}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10"
+        >
+          <X size={16} className="text-white" />
+        </button>
+      </div>
+
+      {/* Viewfinder */}
+      <div className="relative mx-5 flex-1 overflow-hidden rounded-2xl bg-gray-900">
+        {error ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <Camera size={40} className="text-gray-500" />
+            <p className="text-sm text-gray-400">
+              Không truy cập được camera.
+            </p>
+            <button
+              onClick={() => onConfirm(getHHMM())}
+              className="mt-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
+            >
+              Xác nhận không có ảnh
+            </button>
+          </div>
+        ) : (
+          <>
             <video
               ref={videoRef}
               autoPlay
               playsInline
-              className="w-full h-full object-cover"
+              muted
+              className="h-full w-full object-cover"
+              style={{ transform: 'scaleX(-1)' }}
             />
-          </div>
-          <canvas ref={canvasRef} className="hidden" width={640} height={480} />
-          <div className="flex gap-2">
-            <button
-              onClick={stopCamera}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Huỷ
-            </button>
-            <button
-              onClick={capturePhoto}
-              className="flex-1 px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-800"
-            >
-              Xác nhận
-            </button>
-          </div>
+            {/* Oval face guide */}
+            {streaming && (
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center"
+              >
+                <div
+                  className="rounded-full border-2 border-white/60"
+                  style={{ width: 150, height: 190 }}
+                />
+              </div>
+            )}
+          </>
+        )}
+        {/* Live clock overlay */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1">
+          <span className="text-xs font-semibold tabular-nums text-white">{liveTime}</span>
         </div>
       </div>
-    )
+
+      {/* Previous stamp */}
+      {mode === 'check-out' && checkInTime && (
+        <p className="mt-2 text-center text-xs text-gray-400">
+          Vào lúc {checkInTime}
+        </p>
+      )}
+
+      {/* Shutter row */}
+      <div className="flex shrink-0 items-center justify-center py-5">
+        {!error && (
+          <button
+            onClick={() => onConfirm(getHHMM())}
+            className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-white/20 transition-transform active:scale-95"
+          >
+            <div className="h-12 w-12 rounded-full bg-white" />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Confirm Absent Modal ─────────────────────────────────────────────────────
+
+interface AbsentModalProps {
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+function AbsentModal({ onConfirm, onCancel }: AbsentModalProps) {
+  return (
+    <div className="absolute inset-0 z-40 flex items-end">
+      {/* Backdrop */}
+      <button
+        className="absolute inset-0 bg-black/40"
+        onClick={onCancel}
+        aria-label="Đóng"
+      />
+      {/* Sheet */}
+      <div className="relative w-full rounded-t-3xl bg-white px-6 pt-5 pb-8">
+        {/* Handle */}
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
+        {/* Close */}
+        <button
+          onClick={onCancel}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100"
+        >
+          <X size={16} className="text-gray-600" />
+        </button>
+        <h3 className="mb-2 text-base font-bold text-black">Xác nhận vắng mặt</h3>
+        <p className="mb-6 text-sm leading-relaxed text-gray-600">
+          Bạn vui lòng xác nhận vắng mặt hôm nay{' '}
+          <span className="font-semibold text-black">{getTodayLabel()}</span>.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            Huỷ
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 rounded-xl bg-black py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
+
+interface MainModalProps {
+  status: CheckInStatus
+  checkInTime?: string
+  checkOutTime?: string
+  liveTime: string
+  onCheckIn: () => void
+  onCheckOut: () => void
+  onAbsent: () => void
+  onClose: () => void
+}
+
+function MainModal({
+  status,
+  checkInTime,
+  checkOutTime,
+  liveTime,
+  onCheckIn,
+  onCheckOut,
+  onAbsent,
+  onClose,
+}: MainModalProps) {
+  const isCheckedOut = status === 'checked-out'
+
+  return (
+    <div className="absolute inset-0 z-40 flex items-end">
+      {/* Backdrop */}
+      <button
+        className="absolute inset-0 bg-black/40"
+        onClick={onClose}
+        aria-label="Đóng"
+      />
+      {/* Sheet */}
+      <div className="relative w-full overflow-hidden rounded-t-3xl bg-white">
+        {/* Top banner with live time */}
+        <div className="flex items-start justify-between bg-black px-6 pb-5 pt-6">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+              Thời gian hiện tại
+            </p>
+            <p className="mt-1 text-4xl font-bold tabular-nums leading-none text-white">
+              {liveTime.slice(0, 5)}
+            </p>
+            <p className="mt-1.5 text-xs text-gray-400">{getTodayLabel()}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10"
+          >
+            <X size={16} className="text-white" />
+          </button>
+        </div>
+
+        {/* Existing stamps if any */}
+        {(checkInTime || checkOutTime) && (
+          <div className="flex items-center gap-4 border-b border-gray-100 px-6 py-3">
+            {checkInTime && (
+              <div className="flex items-center gap-1.5">
+                <LogIn size={13} className="text-gray-500" />
+                <span className="text-xs text-gray-600">Vào <span className="font-semibold text-black">{checkInTime}</span></span>
+              </div>
+            )}
+            {checkOutTime && (
+              <div className="flex items-center gap-1.5">
+                <LogOut size={13} className="text-gray-500" />
+                <span className="text-xs text-gray-600">Ra <span className="font-semibold text-black">{checkOutTime}</span></span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CTAs */}
+        <div className="px-6 py-5 space-y-3">
+          {!isCheckedOut && (
+            <>
+              {status === 'none' && (
+                <>
+                  <button
+                    onClick={onCheckIn}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+                  >
+                    <LogIn size={16} strokeWidth={2.5} />
+                    Điểm danh vào
+                  </button>
+                  <button
+                    onClick={onAbsent}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-3.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    Vắng mặt
+                  </button>
+                </>
+              )}
+              {status === 'checked-in' && (
+                <button
+                  onClick={onCheckOut}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+                >
+                  <LogOut size={16} strokeWidth={2.5} />
+                  Điểm danh ra về
+                </button>
+              )}
+            </>
+          )}
+          {isCheckedOut && (
+            <div className="flex flex-col items-center gap-1 py-3">
+              <CheckCheck size={24} className="text-black" />
+              <p className="text-sm font-semibold text-black">Đã điểm danh đủ hôm nay</p>
+              <p className="text-xs text-gray-500">
+                Vào {checkInTime} · Ra {checkOutTime}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Safe-area spacer */}
+        <div className="h-2" />
+      </div>
+    </div>
+  )
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+function Toast({ message, visible }: { message: string; visible: boolean }) {
+  return (
+    <div
+      className={`absolute bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-black px-4 py-2 shadow-lg transition-all duration-300 ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <CheckCheck size={13} className="text-white" strokeWidth={2.5} />
+        <span className="whitespace-nowrap text-xs font-semibold text-white">{message}</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Root Export ──────────────────────────────────────────────────────────────
+
+export function CheckInButton({ status, checkInTime, checkOutTime, onStatusChange }: CheckInButtonProps) {
+  const [modal, setModal] = useState<'none' | 'main' | 'absent' | 'camera-in' | 'camera-out'>('none')
+  const [toast, setToast] = useState({ visible: false, message: '' })
+  const liveTime = useLiveTime()
+
+  const showToast = (message: string) => {
+    setToast({ visible: true, message })
+    setTimeout(() => setToast({ visible: false, message: '' }), 3000)
   }
 
-  if (showModal) {
-    return (
-      <>
-        {/* Modal backdrop */}
-        <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50"
-          onClick={() => {
-            setShowModal(false)
-            setShowConfirmAbsent(false)
-          }}
-        />
+  const handleCameraConfirm = (time: string) => {
+    if (modal === 'camera-in') {
+      onStatusChange('checked-in', time)
+      showToast('Điểm danh vào thành công')
+    } else if (modal === 'camera-out') {
+      onStatusChange('checked-out', checkInTime, time)
+      showToast('Điểm danh ra về thành công')
+    }
+    setModal('none')
+  }
 
-        {/* Confirm absent modal */}
-        {showConfirmAbsent && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-            <div className="relative w-full max-w-sm rounded-lg bg-white p-6">
-              <button
-                onClick={() => setShowConfirmAbsent(false)}
-                className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center"
-              >
-                <X size={18} className="text-gray-500" />
-              </button>
-              <p className="text-sm text-gray-700 mb-6">
-                Bạn vui lòng xác nhận vắng mặt hôm nay ngày {getTodayDate()}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowConfirmAbsent(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                >
-                  Huỷ
-                </button>
-                <button
-                  onClick={handleMarkAbsent}
-                  className="flex-1 px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-800"
-                >
-                  Xác nhận
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Main check-in modal */}
-        {!showConfirmAbsent && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-            <div className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white overflow-hidden">
-              {/* Header with timestamp */}
-              <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 font-medium">Thời gian hiện tại</p>
-                  <p className="text-lg font-bold text-black">{getCurrentTime()}</p>
-                </div>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex h-8 w-8 items-center justify-center hover:bg-gray-200 rounded-full"
-                >
-                  <X size={18} className="text-gray-500" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="px-6 py-4 space-y-3">
-                {status === 'none' && (
-                  <>
-                    <button
-                      onClick={startCamera}
-                      className="w-full px-4 py-3 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors"
-                    >
-                      Điểm danh vào
-                    </button>
-                    <button
-                      onClick={() => setShowConfirmAbsent(true)}
-                      className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
-                    >
-                      Vắng mặt
-                    </button>
-                  </>
-                )}
-                {status === 'checked-in' && (
-                  <button
-                    onClick={startCamera}
-                    className="w-full px-4 py-3 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors"
-                  >
-                    Điểm danh ra về
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    )
+  const handleAbsentConfirm = () => {
+    onStatusChange('none')
+    showToast('Đã xác nhận vắng mặt hôm nay')
+    setModal('none')
   }
 
   return (
-    <button
-      onClick={() => setShowModal(true)}
-      className="relative flex h-8 w-8 items-center justify-center"
-      title={status === 'none' ? 'Điểm danh vào' : status === 'checked-in' ? 'Điểm danh ra về' : 'Đã điểm danh'}
-    >
-      {status === 'none' && (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
-        </svg>
+    <>
+      {/* The trigger button */}
+      <button
+        onClick={() => setModal('main')}
+        className="flex items-center transition-transform active:scale-95"
+        aria-label="Điểm danh"
+      >
+        <CheckInIcon status={status} checkInTime={checkInTime} checkOutTime={checkOutTime} />
+      </button>
+
+      {/* Camera overlays — absolute inside the phone screen */}
+      {(modal === 'camera-in' || modal === 'camera-out') && (
+        <CameraOverlay
+          mode={modal === 'camera-in' ? 'check-in' : 'check-out'}
+          checkInTime={checkInTime}
+          onConfirm={handleCameraConfirm}
+          onCancel={() => setModal('main')}
+        />
       )}
-      {status === 'checked-in' && (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 6v6l4 2" />
-        </svg>
+
+      {/* Absent confirmation sheet */}
+      {modal === 'absent' && (
+        <AbsentModal
+          onConfirm={handleAbsentConfirm}
+          onCancel={() => setModal('main')}
+        />
       )}
-      {status === 'checked-out' && (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M9 12l2 2 4-4m7.538-4.3a9 9 0 0 0-5.216-1.7H12a9 9 0 0 0 0 18h.538a9 9 0 0 0 5.216-1.7M9 21h9a9 9 0 0 0 9-9V6a9 9 0 0 0-9-9H9a9 9 0 0 0-9 9v9a9 9 0 0 0 9 9z" />
-        </svg>
+
+      {/* Main bottom sheet */}
+      {modal === 'main' && (
+        <MainModal
+          status={status}
+          checkInTime={checkInTime}
+          checkOutTime={checkOutTime}
+          liveTime={liveTime}
+          onCheckIn={() => setModal('camera-in')}
+          onCheckOut={() => setModal('camera-out')}
+          onAbsent={() => setModal('absent')}
+          onClose={() => setModal('none')}
+        />
       )}
-    </button>
+
+      {/* Toast */}
+      <Toast visible={toast.visible} message={toast.message} />
+    </>
   )
 }

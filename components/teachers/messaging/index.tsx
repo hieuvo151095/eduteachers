@@ -31,6 +31,7 @@ const EXTRA_CONVERSATIONS: Conversation[] = [
     type: 'group',
     participantIds: Array.from({ length: 16 }, (_, i) => `p-${i}`),
     displayName: 'Nhóm Lớp 8A1',
+    classFilter: '8A1',
     lastMessage: 'Bạn: Ngày mai nghỉ học nhé các em',
     lastMessageTime: 'Hôm qua',
     unreadCount: 2,
@@ -40,43 +41,59 @@ const EXTRA_CONVERSATIONS: Conversation[] = [
     type: 'group',
     participantIds: Array.from({ length: 16 }, (_, i) => `p7-${i}`),
     displayName: 'Nhóm Lớp 7B1',
+    classFilter: '7B1',
     lastMessage: 'Mẹ bé Lan: Con bị ốm cô ơi',
     lastMessageTime: 'T2',
     unreadCount: 0,
   },
   // ── direct chats — Lớp 6A2 (5 parents)
-  { id: 'conv-d-6a2-1', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-1'],
-    displayName: 'PH bé Tuấn Kiệt (6A2)', lastMessage: 'Cảm ơn cô đã nhắn ạ', lastMessageTime: '08:30', unreadCount: 0 },
-  { id: 'conv-d-6a2-2', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-2'],
-    displayName: 'PH bé Thanh Mai (6A2)', lastMessage: 'Dạ em ghi nhận ạ', lastMessageTime: '07:55', unreadCount: 0 },
-  { id: 'conv-d-6a2-3', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-3'],
-    displayName: 'PH bé Bảo Châu (6A2)', lastMessage: 'Bạn: Con có bài kiểm tra ngày mai nhé', lastMessageTime: 'Hôm qua', unreadCount: 0 },
-  { id: 'conv-d-6a2-4', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-4'],
-    displayName: 'PH bé Gia Hân (6A2)', lastMessage: 'Bé sẽ đi muộn sáng nay cô ơi', lastMessageTime: 'T4', unreadCount: 2 },
-  { id: 'conv-d-6a2-5', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-5'],
-    displayName: 'PH bé Đăng Khôi (6A2)', lastMessage: 'Cô ơi con xin nghỉ hôm nay ạ', lastMessageTime: 'T3', unreadCount: 0 },
+  { id: 'conv-d-6a2-1', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-1'], classFilter: '6A2',
+    displayName: 'PH bé Tuấn Kiệt', studentName: 'Đặng Tuấn Kiệt', parentName: 'Đặng Văn Hải',
+    lastMessage: 'Cảm ơn cô đã nhắn ạ', lastMessageTime: '08:30', unreadCount: 0 },
+  { id: 'conv-d-6a2-2', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-2'], classFilter: '6A2',
+    displayName: 'PH bé Thanh Mai', studentName: 'Bùi Thanh Mai', parentName: 'Bùi Thị Nga',
+    lastMessage: 'Dạ em ghi nhận ạ', lastMessageTime: '07:55', unreadCount: 0 },
+  { id: 'conv-d-6a2-3', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-3'], classFilter: '6A2',
+    displayName: 'PH bé Bảo Châu', studentName: 'Phạm Bảo Châu', parentName: 'Phạm Văn Long',
+    lastMessage: 'Bạn: Con có bài kiểm tra ngày mai nhé', lastMessageTime: 'Hôm qua', unreadCount: 0 },
+  { id: 'conv-d-6a2-4', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-4'], classFilter: '6A2',
+    displayName: 'PH bé Gia Hân', studentName: 'Võ Gia Hân', parentName: 'Võ Thị Kim',
+    lastMessage: 'Bé sẽ đi muộn sáng nay cô ơi', lastMessageTime: 'T4', unreadCount: 2 },
+  { id: 'conv-d-6a2-5', type: 'direct', participantIds: ['teacher-1', 'parent-6a2-5'], classFilter: '6A2',
+    displayName: 'PH bé Đăng Khôi', studentName: 'Lê Đăng Khôi', parentName: 'Lê Văn Sơn',
+    lastMessage: 'Cô ơi con xin nghỉ hôm nay ạ', lastMessageTime: 'T3', unreadCount: 0 },
   // ── direct chats — Lớp 8A1 (5 parents)
-  { id: 'conv-d-8a1-1', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-1'],
-    displayName: 'PH bé Đức Minh (8A1)', lastMessage: 'Bé bị ho cô nhé', lastMessageTime: 'Hôm qua', unreadCount: 1 },
-  { id: 'conv-d-8a1-2', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-2'],
-    displayName: 'PH bé Anh Thư (8A1)', lastMessage: 'Sáng mai bé đến muộn cô ơi', lastMessageTime: 'T4', unreadCount: 0 },
-  { id: 'conv-d-8a1-3', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-3'],
-    displayName: 'PH bé Thị Ngọc (8A1)', lastMessage: 'Bạn: Cô xác nhận giúp bé ạ', lastMessageTime: 'T3', unreadCount: 0 },
-  { id: 'conv-d-8a1-4', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-4'],
-    displayName: 'PH bé Văn Nam (8A1)', lastMessage: 'Con bị sốt, xin phép nghỉ ạ', lastMessageTime: 'T2', unreadCount: 3 },
-  { id: 'conv-d-8a1-5', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-5'],
-    displayName: 'PH bé Quang Huy (8A1)', lastMessage: 'Dạ cảm ơn cô nhiều ạ', lastMessageTime: 'T2', unreadCount: 0 },
+  { id: 'conv-d-8a1-1', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-1'], classFilter: '8A1',
+    displayName: 'PH bé Đức Minh', studentName: 'Hoàng Đức Minh', parentName: 'Hoàng Thị Yến',
+    lastMessage: 'Bé bị ho cô nhé', lastMessageTime: 'Hôm qua', unreadCount: 1 },
+  { id: 'conv-d-8a1-2', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-2'], classFilter: '8A1',
+    displayName: 'PH bé Anh Thư', studentName: 'Lý Anh Thư', parentName: 'Lý Văn Phúc',
+    lastMessage: 'Sáng mai bé đến muộn cô ơi', lastMessageTime: 'T4', unreadCount: 0 },
+  { id: 'conv-d-8a1-3', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-3'], classFilter: '8A1',
+    displayName: 'PH bé Thị Ngọc', studentName: 'Phan Thị Ngọc', parentName: 'Phan Văn Đức',
+    lastMessage: 'Bạn: Cô xác nhận giúp bé ạ', lastMessageTime: 'T3', unreadCount: 0 },
+  { id: 'conv-d-8a1-4', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-4'], classFilter: '8A1',
+    displayName: 'PH bé Văn Nam', studentName: 'Trịnh Văn Nam', parentName: 'Trịnh Thị Hằng',
+    lastMessage: 'Con bị sốt, xin phép nghỉ ạ', lastMessageTime: 'T2', unreadCount: 3 },
+  { id: 'conv-d-8a1-5', type: 'direct', participantIds: ['teacher-1', 'parent-8a1-5'], classFilter: '8A1',
+    displayName: 'PH bé Quang Huy', studentName: 'Dương Quang Huy', parentName: 'Dương Văn Tài',
+    lastMessage: 'Dạ cảm ơn cô nhiều ạ', lastMessageTime: 'T2', unreadCount: 0 },
   // ── direct chats — Lớp 7B1 (5 parents)
-  { id: 'conv-d-7b1-1', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-1'],
-    displayName: 'PH bé Minh Tú (7B1)', lastMessage: 'Con bị ốm cô nhé ạ', lastMessageTime: 'T2', unreadCount: 0 },
-  { id: 'conv-d-7b1-2', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-2'],
-    displayName: 'PH bé Thị Lan (7B1)', lastMessage: 'Bạn: Cô nhớ nhắc con học bài nhé', lastMessageTime: 'T2', unreadCount: 0 },
-  { id: 'conv-d-7b1-3', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-3'],
-    displayName: 'PH bé Minh An (7B1)', lastMessage: 'Con xin nghỉ chiều nay ạ', lastMessageTime: 'T3', unreadCount: 1 },
-  { id: 'conv-d-7b1-4', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-4'],
-    displayName: 'PH bé Quỳnh Anh (7B1)', lastMessage: 'Bé cần xin phép cô ạ', lastMessageTime: 'T4', unreadCount: 0 },
-  { id: 'conv-d-7b1-5', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-5'],
-    displayName: 'PH bé Thị Hoa (7B1)', lastMessage: 'Cảm ơn cô đã quan tâm ạ', lastMessageTime: 'Hôm qua', unreadCount: 0 },
+  { id: 'conv-d-7b1-1', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-1'], classFilter: '7B1',
+    displayName: 'PH bé Minh Tú', studentName: 'Cao Minh Tú', parentName: 'Cao Thị Thu',
+    lastMessage: 'Con bị ốm cô nhé ạ', lastMessageTime: 'T2', unreadCount: 0 },
+  { id: 'conv-d-7b1-2', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-2'], classFilter: '7B1',
+    displayName: 'PH bé Thị Lan', studentName: 'Đinh Thị Lan', parentName: 'Đinh Văn Khánh',
+    lastMessage: 'Bạn: Cô nhớ nhắc con học bài nhé', lastMessageTime: 'T2', unreadCount: 0 },
+  { id: 'conv-d-7b1-3', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-3'], classFilter: '7B1',
+    displayName: 'PH bé Minh An', studentName: 'Nguyễn Minh An', parentName: 'Nguyễn Thị Hương',
+    lastMessage: 'Con xin nghỉ chiều nay ạ', lastMessageTime: 'T3', unreadCount: 1 },
+  { id: 'conv-d-7b1-4', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-4'], classFilter: '7B1',
+    displayName: 'PH bé Quỳnh Anh', studentName: 'Trần Quỳnh Anh', parentName: 'Trần Văn Dũng',
+    lastMessage: 'Bé cần xin phép cô ạ', lastMessageTime: 'T4', unreadCount: 0 },
+  { id: 'conv-d-7b1-5', type: 'direct', participantIds: ['teacher-1', 'parent-7b1-5'], classFilter: '7B1',
+    displayName: 'PH bé Thị Hoa', studentName: 'Ngô Thị Hoa', parentName: 'Ngô Văn Bảo',
+    lastMessage: 'Cảm ơn cô đã quan tâm ạ', lastMessageTime: 'Hôm qua', unreadCount: 0 },
 ]
 
 // Base conversations — dynamically extended when groups are created
@@ -96,7 +113,8 @@ const MOCK_STUDENTS = Array.from({ length: 15 }, (_, i) => ({
   code: `${10000000 + i * 37123}`,
 }))
 
-// 18 mock parents (some students have 2 parents)
+// 18 mock parents (some students have 2 parents) — each tied to a student,
+// so they can never be removed directly from the "Người nhận" tab.
 const MOCK_PARENTS_MANAGE = Array.from({ length: 18 }, (_, i) => ({
   id: `par-${i}`,
   name: [
@@ -107,6 +125,14 @@ const MOCK_PARENTS_MANAGE = Array.from({ length: 18 }, (_, i) => ({
   ][i],
   studentName: MOCK_STUDENTS[Math.min(i, 14)].name,
 }))
+
+// Non-parent recipients — admins/other teachers, no linked student, so
+// (unlike parents) they can be removed directly from "Người nhận".
+const MOCK_STAFF_RECIPIENTS = [
+  { id: 'staff-1', name: 'Thầy Trần Văn Bình' },
+  { id: 'staff-2', name: 'Cô Lê Thị Cẩm' },
+  { id: 'staff-3', name: 'Cô Phạm Thị Dung' },
+]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -176,7 +202,6 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
   const [activeClassFilter, setActiveClassFilter] = useState('6A2')
   const [pinnedMessages, setPinnedMessages] = useState<Set<string>>(new Set(['gmsg-1']))
   const [allParentsReadOnly, setAllParentsReadOnly] = useState(false)
-  const [memberToDelete, setMemberToDelete] = useState<string | null>(null)
   const [, forceUpdate] = useState(0)
 
   const handleTogglePinMessage = (messageId: string) => {
@@ -238,22 +263,44 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
       {screen.type === 'create-group' && (
         <ScreenCreateGroup
           defaultClass={screen.defaultClass}
-          onCreated={(groupName) => {
+          onCreated={(result) => {
             const newId = `conv-dynamic-${Date.now()}`
-            DYNAMIC_GROUPS.push({
-              conv: {
-                id: newId,
-                type: 'group',
-                participantIds: Array.from({ length: 4 }, (_, i) => `dyn-${i}`),
-                displayName: groupName,
-                lastMessage: 'Nhóm trao đổi được tạo bởi Cô Nguyễn Hồng',
-                lastMessageTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-                unreadCount: 0,
-              },
-              systemMsg: 'Nhóm trao đổi được tạo bởi Cô Nguyễn Hồng',
-            })
-            forceUpdate((n) => n + 1)
-            setScreen({ type: 'group', conversationId: newId })
+            const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+
+            if (result.kind === 'group') {
+              DYNAMIC_GROUPS.push({
+                conv: {
+                  id: newId,
+                  type: 'group',
+                  participantIds: Array.from({ length: result.studentIds.length + 1 }, (_, i) => `dyn-${i}`),
+                  displayName: result.groupName,
+                  lastMessage: 'Nhóm trao đổi được tạo bởi Cô Nguyễn Hồng',
+                  lastMessageTime: nowStr,
+                  unreadCount: 0,
+                },
+                systemMsg: 'Nhóm trao đổi được tạo bởi Cô Nguyễn Hồng',
+              })
+              forceUpdate((n) => n + 1)
+              setScreen({ type: 'group', conversationId: newId })
+            } else {
+              const student = MOCK_STUDENTS.find((s) => s.id === result.studentId)
+              DYNAMIC_GROUPS.push({
+                conv: {
+                  id: newId,
+                  type: 'direct',
+                  participantIds: ['teacher-1', `parent-dyn-${result.studentId}`],
+                  displayName: student ? `PH bé ${student.name.split(' ').slice(-2).join(' ')}` : 'Trao đổi mới',
+                  studentName: student?.name,
+                  parentName: 'Phụ huynh',
+                  lastMessage: 'Trao đổi mới được tạo bởi Cô Nguyễn Hồng',
+                  lastMessageTime: nowStr,
+                  unreadCount: 0,
+                },
+                systemMsg: '',
+              })
+              forceUpdate((n) => n + 1)
+              setScreen({ type: 'direct', conversationId: newId })
+            }
           }}
           onBack={() => setScreen({ type: 'list' })}
         />
@@ -264,8 +311,6 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
           conversationId={screen.conversationId}
           allParentsReadOnly={allParentsReadOnly}
           onReadOnlyChange={setAllParentsReadOnly}
-          memberToDelete={memberToDelete}
-          onMemberDeleteChange={setMemberToDelete}
           onBack={() => setScreen({ type: 'group', conversationId: screen.conversationId })}
         />
       )}
@@ -290,8 +335,11 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
   const inputRef = useRef<HTMLInputElement>(null)
 
   const filtered = getAllConversations().filter((c) => {
-    const matchesSearch = c.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesClass = activeClassFilter === '' || c.displayName.includes(activeClassFilter)
+    // Direct chats are searched by student + parent name (per the search
+    // placeholder); group chats fall back to their group display name.
+    const searchable = c.type === 'direct' ? `${c.studentName ?? ''} ${c.parentName ?? ''}` : c.displayName
+    const matchesSearch = searchable.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesClass = activeClassFilter === '' || c.classFilter === activeClassFilter
     return matchesSearch && matchesClass
   })
 
@@ -324,7 +372,7 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
           <input
             ref={inputRef}
             type="text"
-            placeholder="Tìm lớp, phụ huynh…"
+            placeholder="Tìm qua tên phụ huynh, học sinh…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
@@ -339,12 +387,22 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
           )}
         </div>
 
-        {/* Class filter chips */}
+        {/* Class filter chips — "Tất cả" first, then each class */}
         <div className="flex gap-2 overflow-x-auto pb-3">
+          <button
+            onClick={() => onClassFilterChange('')}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              activeClassFilter === ''
+                ? 'bg-black text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tất cả
+          </button>
           {CLASS_FILTERS.map((cls) => (
             <button
               key={cls}
-              onClick={() => onClassFilterChange(activeClassFilter === cls ? '' : cls)}
+              onClick={() => onClassFilterChange(cls)}
               className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 activeClassFilter === cls
                   ? 'bg-black text-white'
@@ -365,6 +423,7 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
         {filtered.map((conv) => {
           const isGroup = conv.type === 'group'
           const count = conv.participantIds.length
+          const primaryName = conv.type === 'direct' ? conv.studentName ?? conv.displayName : conv.displayName
           return (
             <button
               key={conv.id}
@@ -377,23 +436,22 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
                   <GroupAvatar participantCount={count - 1} />
                 ) : (
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-700">
-                    {initials(conv.displayName)}
+                    {initials(primaryName)}
                   </div>
                 )}
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="truncate font-semibold text-black text-sm">{conv.displayName}</h3>
+                    <h3 className="truncate font-semibold text-black text-sm">{primaryName}</h3>
                     <p className="shrink-0 text-[11px] text-gray-400">{conv.lastMessageTime}</p>
                   </div>
+                  {conv.type === 'direct' && conv.parentName && (
+                    <p className="truncate text-xs text-gray-500">{conv.parentName}</p>
+                  )}
                   <p className="mt-0.5 truncate text-xs text-gray-500">{conv.lastMessage}</p>
                 </div>
-                {/* Unread badge */}
-                {conv.unreadCount > 0 && (
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black">
-                    <span className="text-[10px] font-bold text-white">{conv.unreadCount}</span>
-                  </div>
-                )}
+                {/* Unread indicator — dot only, no count */}
+                {conv.unreadCount > 0 && <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-black" />}
               </div>
             </button>
           )
@@ -455,12 +513,13 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
           <ChevronLeft size={20} className="text-gray-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="truncate font-bold text-black text-sm">{conversation.displayName}</h2>
-          <p className="text-xs text-gray-500">Mẹ: Lê Thị Hoa · Lớp 6A2</p>
+          <h2 className="truncate font-bold text-black text-sm">{conversation.studentName ?? conversation.displayName}</h2>
+          <p className="text-xs text-gray-500">
+            {conversation.parentName ?? conversation.displayName}
+            {conversation.classFilter && ` · Lớp ${conversation.classFilter}`}
+          </p>
         </div>
-        <button className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100">
-          <MoreVertical size={16} className="text-gray-600" />
-        </button>
+        {/* No overflow menu for 1:1 chats — "Cài đặt" only applies to groups */}
       </div>
 
       {/* Pinned strip */}
@@ -926,13 +985,16 @@ function ScreenPinnedMessages({ pinnedMessages, onUnpin, onBack }: ScreenPinnedM
 
 const CLASSES = ['6A2', '8A1', '7B1']
 
+type ConversationKind = 'individual' | 'group'
+
 interface ScreenCreateGroupProps {
   defaultClass: string
-  onCreated: (groupName: string) => void
+  onCreated: (result: { kind: 'individual'; studentId: string } | { kind: 'group'; groupName: string; studentIds: string[] }) => void
   onBack: () => void
 }
 
 function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGroupProps) {
+  const [kind, setKind] = useState<ConversationKind>('group')
   const [groupName, setGroupName] = useState('')
   const [selectedClass, setSelectedClass] = useState(defaultClass || '6A2')
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
@@ -941,7 +1003,10 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
   const [studentSearch, setStudentSearch] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
 
-  const isValid = groupName.trim().length > 0 && selectedStudents.size >= 2
+  const isValid =
+    kind === 'individual'
+      ? selectedStudents.size === 1
+      : groupName.trim().length > 0 && selectedStudents.size >= 2
 
   const filteredStudents = MOCK_STUDENTS.filter((s) =>
     s.name.toLowerCase().includes(studentSearch.toLowerCase())
@@ -949,15 +1014,30 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
 
   const toggleStudent = (id: string) => {
     setSelectedStudents((prev) => {
+      // A 1:1 conversation only ever has one recipient — picking a new
+      // student replaces the previous selection instead of adding to it.
+      if (kind === 'individual') {
+        return prev.has(id) ? new Set() : new Set([id])
+      }
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }
 
+  const handleChangeKind = (next: ConversationKind) => {
+    setKind(next)
+    setSelectedStudents(new Set())
+  }
+
   const handleCreate = () => {
     setShowConfirm(false)
-    onCreated(groupName.trim())
+    if (kind === 'individual') {
+      const [studentId] = selectedStudents
+      onCreated({ kind: 'individual', studentId })
+    } else {
+      onCreated({ kind: 'group', groupName: groupName.trim(), studentIds: Array.from(selectedStudents) })
+    }
   }
 
   return (
@@ -967,24 +1047,51 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
         <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100">
           <ChevronLeft size={20} className="text-gray-600" />
         </button>
-        <h2 className="flex-1 text-sm font-bold text-black">Tạo nhóm trao đổi mới</h2>
+        <h2 className="flex-1 text-sm font-bold text-black">Tạo trao đổi mới</h2>
       </div>
 
       {/* Form */}
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
-        {/* Tên nhóm */}
+        {/* Loại trao đổi */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Tên nhóm
+            Loại trao đổi
           </label>
-          <input
-            type="text"
-            placeholder="Nhập tên nhóm…"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
-          />
+          <div className="flex gap-2">
+            {([
+              { value: 'individual', label: 'Cá nhân' },
+              { value: 'group', label: 'Nhóm' },
+            ] as { value: ConversationKind; label: string }[]).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => handleChangeKind(value)}
+                className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
+                  kind === value
+                    ? 'border-black bg-black text-white'
+                    : 'border-gray-200 bg-gray-50 text-black hover:bg-gray-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Tên nhóm — chỉ hiện khi loại trao đổi là "Nhóm" */}
+        {kind === 'group' && (
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Tên nhóm
+            </label>
+            <input
+              type="text"
+              placeholder="Nhập tên nhóm…"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400 focus:bg-white"
+            />
+          </div>
+        )}
 
         {/* Chọn lớp */}
         <div>
@@ -1006,7 +1113,9 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Chọn học sinh
-            <span className="ml-1 font-normal normal-case text-gray-400">(chọn ít nhất 2)</span>
+            <span className="ml-1 font-normal normal-case text-gray-400">
+              {kind === 'individual' ? '(chỉ được chọn 1 học sinh)' : '(chọn ít nhất 2)'}
+            </span>
           </label>
           <button
             onClick={() => setShowStudentSheet(true)}
@@ -1043,7 +1152,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
           onClick={() => setShowConfirm(true)}
           className="w-full rounded-xl bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-30"
         >
-          Tạo nhóm
+          Tạo trao đổi
         </button>
       </div>
 
@@ -1106,7 +1215,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
               {filteredStudents.map((s) => (
                 <label key={s.id} className="flex cursor-pointer items-center gap-3 py-3">
                   <input
-                    type="checkbox"
+                    type={kind === 'individual' ? 'radio' : 'checkbox'}
                     checked={selectedStudents.has(s.id)}
                     onChange={() => toggleStudent(s.id)}
                     className="h-4 w-4 accent-black"
@@ -1142,10 +1251,15 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
       {showConfirm && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 px-6">
           <div className="w-full rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="mb-1 text-base font-bold text-black">Xác nhận tạo nhóm</h3>
+            <h3 className="mb-1 text-base font-bold text-black">Xác nhận tạo trao đổi</h3>
             <p className="mb-1 text-sm text-gray-600">
-              Tên nhóm: <span className="font-semibold text-black">{groupName}</span>
+              Loại trao đổi: <span className="font-semibold text-black">{kind === 'individual' ? 'Cá nhân' : 'Nhóm'}</span>
             </p>
+            {kind === 'group' && (
+              <p className="mb-1 text-sm text-gray-600">
+                Tên nhóm: <span className="font-semibold text-black">{groupName}</span>
+              </p>
+            )}
             <p className="mb-1 text-sm text-gray-600">
               Lớp: <span className="font-semibold text-black">Lớp {selectedClass}</span>
             </p>
@@ -1163,7 +1277,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
                 onClick={handleCreate}
                 className="flex-1 rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
               >
-                Tạo nhóm
+                Tạo trao đổi
               </button>
             </div>
           </div>
@@ -1179,21 +1293,51 @@ interface ScreenGroupManageProps {
   conversationId: string
   allParentsReadOnly: boolean
   onReadOnlyChange: (value: boolean) => void
-  memberToDelete: string | null
-  onMemberDeleteChange: (value: string | null) => void
   onBack: () => void
 }
+
+type DeleteTarget = { kind: 'student' | 'staff'; id: string; name: string }
 
 function ScreenGroupManage({
   allParentsReadOnly,
   onReadOnlyChange,
-  memberToDelete,
-  onMemberDeleteChange,
   onBack,
 }: ScreenGroupManageProps) {
-  const [tab, setTab] = useState<'students' | 'parents'>('students')
+  const [tab, setTab] = useState<'students' | 'recipients'>('students')
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [addMode, setAddMode] = useState<'student' | 'teacher'>('student')
+
+  // Removal is local to this screen — nothing else in the prototype reads
+  // group membership, so there's no need to lift it further up.
+  const [removedStudentIds, setRemovedStudentIds] = useState<Set<string>>(new Set())
+  const [removedStaffIds, setRemovedStaffIds] = useState<Set<string>>(new Set())
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [showReadOnlyConfirm, setShowReadOnlyConfirm] = useState(false)
+
+  const visibleStudents = MOCK_STUDENTS.filter((s) => !removedStudentIds.has(s.id))
+  // Removing a student cascades: any parent linked to that student is no
+  // longer a valid recipient, so they drop out of the "Người nhận" tab too.
+  const removedStudentNames = new Set(
+    MOCK_STUDENTS.filter((s) => removedStudentIds.has(s.id)).map((s) => s.name)
+  )
+  const visibleParents = MOCK_PARENTS_MANAGE.filter((p) => !removedStudentNames.has(p.studentName))
+  const visibleStaff = MOCK_STAFF_RECIPIENTS.filter((s) => !removedStaffIds.has(s.id))
+  const recipientCount = visibleParents.length + visibleStaff.length
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    if (deleteTarget.kind === 'student') {
+      setRemovedStudentIds((prev) => new Set(prev).add(deleteTarget.id))
+    } else {
+      setRemovedStaffIds((prev) => new Set(prev).add(deleteTarget.id))
+    }
+    setDeleteTarget(null)
+  }
+
+  const handleConfirmReadOnlyToggle = () => {
+    onReadOnlyChange(!allParentsReadOnly)
+    setShowReadOnlyConfirm(false)
+  }
 
   return (
     <>
@@ -1226,7 +1370,7 @@ function ScreenGroupManage({
               <p className="text-xs text-gray-500">Khoá phụ huynh gửi tin nhắn trong nhóm</p>
             </div>
             <button
-              onClick={() => onReadOnlyChange(!allParentsReadOnly)}
+              onClick={() => setShowReadOnlyConfirm(true)}
               className={`relative ml-4 h-6 w-11 shrink-0 rounded-full transition-colors ${
                 allParentsReadOnly ? 'bg-black' : 'bg-gray-300'
               }`}
@@ -1240,9 +1384,9 @@ function ScreenGroupManage({
           </div>
         </div>
 
-        {/* Tabs: Học sinh / Phụ huynh */}
+        {/* Tabs: Học sinh / Người nhận */}
         <div className="flex border-b border-gray-100 px-4">
-          {(['students', 'parents'] as const).map((t) => (
+          {(['students', 'recipients'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -1252,7 +1396,7 @@ function ScreenGroupManage({
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              {t === 'students' ? `Học sinh (${MOCK_STUDENTS.length})` : `Phụ huynh (${MOCK_PARENTS_MANAGE.length})`}
+              {t === 'students' ? `Học sinh (${visibleStudents.length})` : `Người nhận (${recipientCount})`}
             </button>
           ))}
         </div>
@@ -1260,7 +1404,7 @@ function ScreenGroupManage({
         {/* Member list */}
         <div className="divide-y divide-gray-100 px-4">
           {tab === 'students' &&
-            MOCK_STUDENTS.map((s) => (
+            visibleStudents.map((s) => (
               <div key={s.id} className="flex items-center gap-3 py-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
                   {initials(s.name)}
@@ -1269,41 +1413,48 @@ function ScreenGroupManage({
                   <p className="truncate text-sm font-semibold text-black">{s.name}</p>
                   <p className="text-xs text-gray-400">{s.code}</p>
                 </div>
-                {memberToDelete === s.id ? (
-                  <div className="flex gap-2">
-                    <button onClick={() => onMemberDeleteChange(null)} className="text-xs text-gray-500 hover:text-black">Huỷ</button>
-                    <button onClick={() => onMemberDeleteChange(null)} className="text-xs font-semibold text-red-600 hover:text-red-700">Xoá</button>
-                  </div>
-                ) : (
-                  <button onClick={() => onMemberDeleteChange(s.id)} className="text-gray-300 hover:text-red-400">
-                    <X size={14} />
-                  </button>
-                )}
+                <button
+                  onClick={() => setDeleteTarget({ kind: 'student', id: s.id, name: s.name })}
+                  className="text-gray-300 hover:text-red-400"
+                >
+                  <X size={14} />
+                </button>
               </div>
             ))}
 
-          {tab === 'parents' &&
-            MOCK_PARENTS_MANAGE.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 py-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
-                  {initials(p.name)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-semibold text-black">{p.name}</p>
-                  <p className="text-xs text-gray-400">PH bé {p.studentName}</p>
-                </div>
-                {memberToDelete === p.id ? (
-                  <div className="flex gap-2">
-                    <button onClick={() => onMemberDeleteChange(null)} className="text-xs text-gray-500 hover:text-black">Huỷ</button>
-                    <button onClick={() => onMemberDeleteChange(null)} className="text-xs font-semibold text-red-600 hover:text-red-700">Xoá</button>
+          {tab === 'recipients' && (
+            <>
+              {/* Phụ huynh — liên kết học sinh, không thể xoá trực tiếp */}
+              {visibleParents.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 py-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                    {initials(p.name)}
                   </div>
-                ) : (
-                  <button onClick={() => onMemberDeleteChange(p.id)} className="text-gray-300 hover:text-red-400">
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-semibold text-black">{p.name}</p>
+                    <p className="text-xs text-gray-400">PH bé {p.studentName}</p>
+                  </div>
+                </div>
+              ))}
+              {/* Admin/giáo viên — không liên kết học sinh, có thể xoá */}
+              {visibleStaff.map((s) => (
+                <div key={s.id} className="flex items-center gap-3 py-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                    {initials(s.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-semibold text-black">{s.name}</p>
+                  </div>
+                  <button
+                    onClick={() => setDeleteTarget({ kind: 'staff', id: s.id, name: s.name })}
+                    className="text-gray-300 hover:text-red-400"
+                  >
                     <X size={14} />
                   </button>
-                )}
-              </div>
-            ))}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -1368,6 +1519,69 @@ function ScreenGroupManage({
             >
               Thêm vào nhóm
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation pop-up — applies to both "Học sinh" and "Người nhận" tabs */}
+      {deleteTarget && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-base font-bold text-black">
+              Xoá {deleteTarget.kind === 'student' ? 'học sinh' : 'người nhận'} này?
+            </h3>
+            <p className="mb-1 text-sm text-gray-600">
+              <span className="font-semibold text-black">{deleteTarget.name}</span> sẽ bị xoá khỏi nhóm trao đổi.
+            </p>
+            {deleteTarget.kind === 'student' && (
+              <p className="mb-1 text-xs text-amber-700">
+                Lưu ý: Những người nhận liên kết với học sinh này sẽ được xoá khỏi nhóm trao đổi.
+              </p>
+            )}
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only toggle confirmation pop-up */}
+      {showReadOnlyConfirm && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-base font-bold text-black">
+              {allParentsReadOnly ? 'Bỏ giới hạn gửi tin nhắn?' : 'Chỉ giáo viên được gửi tin nhắn?'}
+            </h3>
+            <p className="mb-1 text-sm text-gray-600">
+              {allParentsReadOnly
+                ? 'Phụ huynh sẽ có thể gửi tin nhắn trong nhóm trở lại.'
+                : 'Phụ huynh sẽ không thể gửi tin nhắn trong nhóm cho đến khi bạn tắt chế độ này.'}
+            </p>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setShowReadOnlyConfirm(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleConfirmReadOnlyToggle}
+                className="flex-1 rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+              >
+                Xác nhận
+              </button>
+            </div>
           </div>
         </div>
       )}

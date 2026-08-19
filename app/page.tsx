@@ -68,7 +68,7 @@ export default function Page() {
           </div>
 
           {/* Scrollable screen content */}
-          <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="relative flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
             {screen === 'home' && (
               <TeachersHomeScreen 
                 onNavigateToThucDon={() => setScreen('thuc-don')}

@@ -167,3 +167,16 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  /* Hides the scrollbar track while keeping the element scrollable — mobile
+     OSes only ever show a scrollbar transiently during a drag, never as a
+     persistent track, so this keeps the fake-iPhone frame honest. */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

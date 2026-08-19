@@ -252,13 +252,18 @@ export const MOCK_FOOD_MENUS: Record<string, Record<string, FoodMenu>> = {
 
 export const TODAY_STR = dateOffset(0) // '30/06/2026'
 
-// ─── Attendance Types ──────────────────────────────────────────────────────
+// ─── Điểm danh (Attendance) Types ──────────────────────────────────────────
+//
+// AttendanceStatus/CheckoutStatus encode the underlying record; badge *labels*
+// shown in the UI are derived from these (see attendance/shared.tsx) — some
+// labels intentionally diverge from the status name (see diem-danh-flow-spec
+// Open Question #3: "Trả học sinh" keeps the literal "Chưa đón" wording).
 
-export type AttendanceStatus = 'chưa-điểm-danh' | 'đúng-giờ' | 'đi-trễ' | 'vắng-có-phép' | 'vắng-không-phép' | 'chờ-duyệt'
-export type CheckoutStatus = 'chưa-trả' | 'về-đúng-giờ' | 'về-muộn'
-export type AbsenceRequestStatus = 'chờ-duyệt' | 'đã-duyệt' | 'đã-hủy'
+export type AttendanceStatus = 'chưa-đón' | 'có-mặt' | 'đến-muộn' | 'vắng-có-phép' | 'vắng-không-phép'
+export type CheckoutStatus = 'chưa-về' | 'đã-về' | 'vắng-có-phép' | 'vắng-không-phép'
+export type AbsenceRequestStatus = 'chờ-duyệt' | 'đã-duyệt' | 'đã-huỷ'
 
-export interface Student {
+export interface DiemDanhStudent {
   id: string
   name: string
   avatar?: string
@@ -271,7 +276,6 @@ export interface CheckInRecord {
   checkInTime?: string // HH:MM format
   status: AttendanceStatus
   note?: string
-  absenceRequestId?: string
 }
 
 export interface CheckOutRecord {
@@ -291,159 +295,47 @@ export interface AbsenceRequest {
   requestStatus: AbsenceRequestStatus
 }
 
-// School operation times
+// School operation times — also the threshold used to auto-derive "Đến muộn"
+// vs "Có mặt" at check-in time (diem-danh-flow-spec Open Question #5).
 export const SCHOOL_CHECK_IN_TIME = '08:00'
 export const SCHOOL_CHECK_OUT_TIME = '16:30'
 
-// 20 students per class
-const STUDENT_NAMES = [
-  'Nguyễn Văn An', 'Trần Thị Bảo', 'Lê Minh Châu', 'Phạm Quốc Đạt', 'Hoàng Hữu Em',
-  'Vũ Thanh Phương', 'Đặng Kiều Giang', 'Cao Huy Hoàng', 'Bùi Thanh Ick', 'Đỗ Minh K',
-  'Dương Lâm', 'Trần Tuấn Long', 'Ngô Thị Minh', 'Phan Nhật Nam', 'Quách Thị Oàn',
-  'Raman Phạm', 'Sơn Thị Quỳnh', 'Tô Văn Ronaldo', 'Ưu Hữu Sơn', 'Võ Minh Tân',
+// Classes the teacher can switch between in the "Chọn lớp" sheet (Lớp 6A2 is
+// their homeroom class; 8A1/8A10 are subject classes with no secondary label
+// per Open Question #7). Scoped to the Điểm danh feature — MOCK_CLASSES above
+// is a separate, larger list used by Thực đơn lớp and isn't touched here.
+export const DIEM_DANH_CLASSES: ClassInfo[] = [
+  { id: 'class-7', name: 'Lớp 6A2', isHomeroom: true },
+  { id: 'class-8', name: '8A1' },
+  { id: 'class-10', name: '8A10' },
 ]
 
-// Deterministic 8-digit student code from classId + index
-function make8DigitCode(classId: string, idx: number): string {
-  const seed = classId.replace(/\D/g, '') || '7'
-  const base = parseInt(seed) * 1000000 + idx * 37 * 1000 + 10000000
-  return String(base % 100000000).padStart(8, '0')
-}
+// Fixed 3-student roster per diem-danh-flow-spec sample data.
+export const DIEM_DANH_STUDENTS: DiemDanhStudent[] = [
+  { id: 'dd-student-1', name: 'Nguyễn Hoàng Huyền Diệu', avatar: '/placeholder-user.jpg', studentCode: 'KID0005' },
+  { id: 'dd-student-2', name: 'Phạm Thu Trang', studentCode: 'KID0006' },
+  { id: 'dd-student-3', name: 'Hoàng Thanh Trúc', studentCode: 'KID0008' },
+]
 
-export function generateStudentsForClass(classId: string): Student[] {
-  return STUDENT_NAMES.map((name, idx) => ({
-    id: `student-${classId}-${idx}`,
-    name,
-    studentCode: make8DigitCode(classId, idx),
-  }))
-}
-
-// Generate attendance records for today + 3 example dates
-export function generateAttendanceRecords(
-  classId: string,
-  date: string
-): Record<string, CheckInRecord> {
-  const students = generateStudentsForClass(classId)
+export function createInitialCheckInRecords(date: string): Record<string, CheckInRecord> {
   const records: Record<string, CheckInRecord> = {}
-
-  students.forEach((student, idx) => {
-    const rand = (idx * 13) % 100
-    let status: AttendanceStatus = 'chưa-điểm-danh'
-    let checkInTime: string | undefined
-
-    if (rand < 70) {
-      // 70% on-time
-      status = 'đúng-giờ'
-      const minutes = 5 + Math.floor((idx * 7) % 15)
-      checkInTime = `07:${String(55 - minutes).padStart(2, '0')}`
-    } else if (rand < 85) {
-      // 15% late
-      status = 'đi-trễ'
-      const minutes = 10 + Math.floor((idx * 11) % 20)
-      checkInTime = `08:${String(minutes).padStart(2, '0')}`
-    } else if (rand < 93) {
-      // 8% absent with permission
-      status = 'vắng-có-phép'
-    } else {
-      // 7% absent no permission
-      status = 'vắng-không-phép'
-    }
-
-    records[student.id] = {
-      studentId: student.id,
-      date,
-      checkInTime,
-      status,
-      note: status === 'vắng-có-phép' ? 'Bệnh' : undefined,
-    }
+  DIEM_DANH_STUDENTS.forEach((s) => {
+    records[s.id] = { studentId: s.id, date, status: 'chưa-đón' }
   })
-
   return records
 }
 
-// Generate checkout records (only for students who checked in)
-export function generateCheckoutRecords(
-  classId: string,
-  date: string,
-  checkins: Record<string, CheckInRecord>
-): Record<string, CheckOutRecord> {
+export function createInitialCheckOutRecords(date: string): Record<string, CheckOutRecord> {
   const records: Record<string, CheckOutRecord> = {}
-
-  Object.entries(checkins).forEach(([studentId, checkin]) => {
-    // Only students who checked in are eligible for checkout
-    if (checkin.status === 'đúng-giờ' || checkin.status === 'đi-trễ') {
-      const rand = parseInt(studentId.split('-').pop() || '0') * 17
-      let status: CheckoutStatus = 'về-đúng-giờ'
-      let checkOutTime = '16:30'
-
-      if (rand % 100 < 20) {
-        status = 'về-muộn'
-        const minutes = 5 + Math.floor((rand * 5) % 30)
-        checkOutTime = `16:${String(30 + minutes).padStart(2, '0')}`
-      }
-
-      records[studentId] = {
-        studentId,
-        date,
-        checkOutTime,
-        status,
-      }
-    }
+  DIEM_DANH_STUDENTS.forEach((s) => {
+    records[s.id] = { studentId: s.id, date, status: 'chưa-về' }
   })
-
   return records
 }
 
-const ABSENCE_REASONS = [
-  'Con bị sốt, chưa khoẻ',
-  'Gia đình có việc riêng',
-  'Đám cưới họ hàng nội',
-  'Khám bệnh định kỳ',
-  'Về quê thăm ông bà',
-]
-
-// Generate absence requests for today — returns requests keyed by studentId for easy lookup
-export function generateAbsenceRequests(classId: string, date: string): AbsenceRequest[] {
-  const students = generateStudentsForClass(classId)
-  const requests: AbsenceRequest[] = []
-
-  // index 2 → chờ duyệt, index 7 → đã duyệt, index 14 → đã duyệt (past day requests)
-  const configs = [
-    { idx: 2, status: 'chờ-duyệt' as AbsenceRequestStatus, reasonIdx: 0, hoursAgo: 1 },
-    { idx: 7, status: 'đã-duyệt' as AbsenceRequestStatus, reasonIdx: 1, hoursAgo: 3 },
-    { idx: 14, status: 'đã-duyệt' as AbsenceRequestStatus, reasonIdx: 2, hoursAgo: 5 },
-    { idx: 4, status: 'chờ-duyệt' as AbsenceRequestStatus, reasonIdx: 3, hoursAgo: 0.5 },
-  ]
-
-  configs.forEach(({ idx, status, reasonIdx, hoursAgo }) => {
-    const student = students[idx]
-    requests.push({
-      id: `absence-${classId}-${date}-${idx}`,
-      studentId: student.id,
-      date,
-      reason: ABSENCE_REASONS[reasonIdx],
-      requestedAt: new Date(Date.now() - hoursAgo * 3600000).toISOString(),
-      requestStatus: status,
-    })
-  })
-
-  return requests
-}
-
-// Returns the set of studentIds with approved absence requests for a given date
-export function getApprovedAbsenceStudentIds(requests: AbsenceRequest[]): Set<string> {
-  return new Set(requests.filter((r) => r.requestStatus === 'đã-duyệt').map((r) => r.studentId))
-}
-
-// Returns the set of studentIds with pending absence requests
-export function getPendingAbsenceStudentIds(requests: AbsenceRequest[]): Set<string> {
-  return new Set(requests.filter((r) => r.requestStatus === 'chờ-duyệt').map((r) => r.studentId))
-}
-
-// Pre-generate attendance data for today for class-7 (Lớp 6A2)
-export const MOCK_ATTENDANCE_TODAY = generateAttendanceRecords('class-7', TODAY_STR)
-export const MOCK_CHECKOUT_TODAY = generateCheckoutRecords('class-7', TODAY_STR, MOCK_ATTENDANCE_TODAY)
-export const MOCK_ABSENCE_REQUESTS_TODAY = generateAbsenceRequests('class-7', TODAY_STR)
+// No sample absence-request data is defined in diem-danh-flow-spec (Diem danh
+// 6 only illustrates the empty state) — starts empty.
+export const DIEM_DANH_ABSENCE_REQUESTS: AbsenceRequest[] = []
 
 // ─── Messaging Types ──────────────────────────────────────────────────────────
 
@@ -480,7 +372,13 @@ export interface Conversation {
   lastMessage?: string
   lastMessageTime?: string
   unreadCount: number
+  // Short class code ('6A2' | '8A1' | '7B1') the conversation belongs to —
+  // used by the "Trao đổi" tab filter (and "Tất cả" when unset/empty).
   classFilter?: string
+  // Direct (1:1) conversations only — the list row shows student name (used
+  // for search) above the smaller parent name, instead of a single displayName.
+  studentName?: string
+  parentName?: string
 }
 
 // Mock parent data
@@ -500,7 +398,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     participantIds: ['teacher-1', ...PARENTS.map((p) => p.id)],
     displayName: 'Nhóm Lớp 6A2',
     unreadCount: 0,
-    classFilter: 'class-7',
+    classFilter: '6A2',
     lastMessage: 'Bạn: 7h30 tập trung ở sân trường nhé.',
     lastMessageTime: '08:50',
   },
@@ -509,6 +407,9 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: 'direct',
     participantIds: ['teacher-1', 'parent-1'],
     displayName: 'PH bé Minh An',
+    studentName: 'Nguyễn Minh An',
+    parentName: 'Lê Thị Hoa',
+    classFilter: '6A2',
     lastMessage: '💊 Dặn thuốc — Paracetamol 250mg',
     lastMessageTime: '10:02',
     unreadCount: 1,
@@ -518,6 +419,9 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: 'direct',
     participantIds: ['teacher-1', 'parent-2'],
     displayName: 'PH bé Quỳnh Anh',
+    studentName: 'Trần Quỳnh Anh',
+    parentName: 'Trần Văn Hùng',
+    classFilter: '6A2',
     lastMessage: 'Dạ em cảm ơn cô nhiều ạ',
     lastMessageTime: '09:15',
     unreadCount: 0,
@@ -527,6 +431,9 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: 'direct',
     participantIds: ['teacher-1', 'parent-3'],
     displayName: 'PH bé Đăng Khôi',
+    studentName: 'Lê Đăng Khôi',
+    parentName: 'Nguyễn Thị Thu',
+    classFilter: '6A2',
     lastMessage: 'Nhờ cô để ý bé giúp em ạ',
     lastMessageTime: 'Hôm qua',
     unreadCount: 0,
@@ -536,6 +443,9 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: 'direct',
     participantIds: ['teacher-1', 'parent-5'],
     displayName: 'PH bé Gia Hân',
+    studentName: 'Võ Gia Hân',
+    parentName: 'Võ Thanh Hoa',
+    classFilter: '6A2',
     lastMessage: 'Bé nay nghỉ ốm cô nhé',
     lastMessageTime: 'T3',
     unreadCount: 0,

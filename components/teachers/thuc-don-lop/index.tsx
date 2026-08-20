@@ -1,104 +1,77 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  MOCK_CLASSES,
-  MOCK_FOOD_MENUS,
-  TODAY_STR,
-  type ClassInfo,
-  type FoodItem,
-  type Ingredient,
-} from '@/lib/mock-data'
-import { FoodMenuScreen } from './food-menu-screen'
-import { ClassSwitcher } from './class-switcher'
-import { DateCarousel } from './date-carousel'
-import { IngredientListModal } from './ingredient-list-modal'
-import { IngredientDetails } from './ingredient-details'
+import { MOCK_CLASSES, MOCK_THUC_DON_WEEKS, type ClassInfo, type ThucDonMon } from '@/lib/mock-data'
+import { ClassPickerSheet } from '@/components/teachers/attendance/class-picker-sheet'
+import { MainScreen } from './main-screen'
+import { WeekPickerSheet } from './week-picker-sheet'
+import { IngredientSheet } from './ingredient-sheet'
+import { ImageViewer } from './image-viewer'
 
 interface ThucDonLopAppProps {
   onBack: () => void
 }
 
 export function ThucDonLopApp({ onBack }: ThucDonLopAppProps) {
-  // Default to Lớp 6A2 (class-7 — homeroom)
+  // Menu data is shared across all classes (school kitchen cooks one menu for
+  // everyone) — "Đổi lớp" only changes the header subtitle, per Phase 2 decision.
   const [selectedClass, setSelectedClass] = useState<ClassInfo>(
     MOCK_CLASSES.find((c) => c.id === 'class-7') ?? MOCK_CLASSES[0]
   )
-  const [selectedDate, setSelectedDate] = useState<string>(TODAY_STR)
+  const [selectedWeekId, setSelectedWeekId] = useState(MOCK_THUC_DON_WEEKS[0].id)
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0) // mặc định Thứ 2
 
-  // Modals
-  const [showClassSwitcher, setShowClassSwitcher] = useState(false)
-  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null)
-  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null)
+  const [showClassPicker, setShowClassPicker] = useState(false)
+  const [showWeekPicker, setShowWeekPicker] = useState(false)
+  const [selectedFood, setSelectedFood] = useState<ThucDonMon | null>(null)
+  const [showImageViewer, setShowImageViewer] = useState(false)
 
-  const classMenusByDate = MOCK_FOOD_MENUS[selectedClass.id] ?? {}
-  const foodMenu = classMenusByDate[selectedDate]
-
-  const handleClassSelect = (cls: ClassInfo) => {
-    setSelectedClass(cls)
-    setShowClassSwitcher(false)
-  }
-
-  const handleFoodClick = (food: FoodItem) => {
-    setSelectedFood(food)
-    setSelectedIngredient(null)
-  }
-
-  const handleIngredientClick = (ingredient: Ingredient) => {
-    setSelectedIngredient(ingredient)
-  }
-
-  const handleBackFromDetails = () => {
-    setSelectedIngredient(null)
-    // selectedFood stays open — ingredient list reappears
-  }
-
-  const handleCloseIngredientList = () => {
-    setSelectedFood(null)
-    setSelectedIngredient(null)
-  }
+  const selectedWeek = MOCK_THUC_DON_WEEKS.find((w) => w.id === selectedWeekId) ?? MOCK_THUC_DON_WEEKS[0]
+  const selectedDay = selectedWeek.days[selectedDayIndex]
 
   return (
-    <div className="relative flex flex-col bg-white">
-      {/* Main content */}
-      <FoodMenuScreen
+    <div className="relative flex min-h-full flex-col bg-white">
+      <MainScreen
         selectedClass={selectedClass}
-        foodMenu={foodMenu}
-        selectedDate={selectedDate}
+        week={selectedWeek}
+        day={selectedDay}
+        selectedDayIndex={selectedDayIndex}
         onBack={onBack}
-        onClassSwitch={() => setShowClassSwitcher(true)}
-        onFoodClick={handleFoodClick}
+        onChangeClass={() => setShowClassPicker(true)}
+        onOpenWeekPicker={() => setShowWeekPicker(true)}
+        onSelectDay={setSelectedDayIndex}
+        onFoodClick={setSelectedFood}
+        onOpenAttachment={() => setShowImageViewer(true)}
       />
 
-      {/* Date carousel — sticky at bottom of the food list */}
-      <DateCarousel selectedDate={selectedDate} onDateChange={setSelectedDate} />
-
-      {/* Class switcher bottom sheet */}
-      {showClassSwitcher && (
-        <ClassSwitcher
-          selectedClassId={selectedClass.id}
+      {showClassPicker && (
+        <ClassPickerSheet
           classes={MOCK_CLASSES}
-          onSelect={handleClassSelect}
-          onClose={() => setShowClassSwitcher(false)}
+          selectedClassId={selectedClass.id}
+          onSelect={(cls) => {
+            setSelectedClass(cls)
+            setShowClassPicker(false)
+          }}
+          onClose={() => setShowClassPicker(false)}
         />
       )}
 
-      {/* Ingredient list bottom sheet (level 1) — only visible when no ingredient selected */}
-      {selectedFood && !selectedIngredient && (
-        <IngredientListModal
-          food={selectedFood}
-          onIngredientClick={handleIngredientClick}
-          onClose={handleCloseIngredientList}
+      {showWeekPicker && (
+        <WeekPickerSheet
+          weeks={MOCK_THUC_DON_WEEKS}
+          selectedWeekId={selectedWeekId}
+          onSelect={(week) => {
+            setSelectedWeekId(week.id)
+            setSelectedDayIndex(0)
+            setShowWeekPicker(false)
+          }}
+          onClose={() => setShowWeekPicker(false)}
         />
       )}
 
-      {/* Ingredient source details (level 2) */}
-      {selectedIngredient && (
-        <IngredientDetails
-          ingredient={selectedIngredient}
-          onBack={handleBackFromDetails}
-        />
-      )}
+      {selectedFood && <IngredientSheet food={selectedFood} onClose={() => setSelectedFood(null)} />}
+
+      {showImageViewer && <ImageViewer week={selectedWeek} onClose={() => setShowImageViewer(false)} />}
     </div>
   )
 }

@@ -99,6 +99,13 @@ function CameraScreen({ mode, checkInTime, onConfirm, onCancel }: CameraScreenPr
   const capturedTime = useRef<string>('')
 
   useEffect(() => {
+    // navigator.mediaDevices is undefined outside secure contexts (non-HTTPS,
+    // non-localhost) and in some sandboxed preview iframes — guard instead of
+    // crashing, and fall back to the existing "no camera" state.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(true)
+      return
+    }
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: 'user' }, audio: false })
       .then((s) => {

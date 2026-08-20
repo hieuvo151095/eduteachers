@@ -1,18 +1,15 @@
 'use client'
 
-import { ChevronLeft, ChevronDown, RefreshCw, User } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { AttendanceStatus, CheckoutStatus, ClassInfo, DiemDanhStudent } from '@/lib/mock-data'
+import { ChevronDown, User } from 'lucide-react'
+import type { AttendanceStatus, CheckoutStatus, DiemDanhStudent } from '@/lib/mock-data'
+
+// Header moved to components/teachers/shared/header.tsx so it can be reused
+// by other features (e.g. "Thực đơn lớp") without a cross-feature import into
+// attendance/. Re-exported here under its original name so existing imports
+// (`from './shared'`) in this feature keep working unchanged.
+export { AppHeader as AttendanceHeader, classSubtitle } from '@/components/teachers/shared/header'
 
 export type Session = 'sang' | 'chieu'
-
-// ─── Class subtitle ─────────────────────────────────────────────────────────
-// Standardized order per diem-danh-flow-spec Open Question #1: "[Loại lớp] -
-// Lớp [Tên]" everywhere. Non-homeroom classes have no secondary label
-// (Open Question #7), so they render as just "Lớp [Tên]".
-export function classSubtitle(cls: ClassInfo): string {
-  return cls.isHomeroom ? `Lớp chủ nhiệm - Lớp ${cls.name}` : `Lớp ${cls.name}`
-}
 
 // ─── Status labels ──────────────────────────────────────────────────────────
 
@@ -89,43 +86,6 @@ export function EmptyStateIllustration() {
       <circle cx="44" cy="46" r="13" fill="white" stroke="#D1D5DB" strokeWidth="2" />
       <text x="44" y="51" textAnchor="middle" fontSize="14" fontWeight={700} fill="#9CA3AF">0</text>
     </svg>
-  )
-}
-
-// ─── Header ─────────────────────────────────────────────────────────────────
-
-export function AttendanceHeader({
-  title,
-  subtitle,
-  onBack,
-  onChangeClass,
-  centered = false,
-}: {
-  title: string
-  subtitle?: string
-  onBack: () => void
-  onChangeClass?: () => void
-  centered?: boolean
-}) {
-  return (
-    <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">
-      <button onClick={onBack} className="shrink-0 p-1 text-gray-600 active:text-black">
-        <ChevronLeft size={22} />
-      </button>
-      <div className={cn('min-w-0 flex-1', centered && 'text-center')}>
-        <h1 className="truncate text-base font-bold text-black">{title}</h1>
-        {subtitle && <p className="truncate text-xs text-gray-500">{subtitle}</p>}
-      </div>
-      {onChangeClass && (
-        <button
-          onClick={onChangeClass}
-          className="flex shrink-0 items-center gap-1 rounded-full border border-blue-500 px-3 py-1.5 text-xs font-semibold text-blue-600 active:bg-blue-50"
-        >
-          <RefreshCw size={13} />
-          Đổi lớp
-        </button>
-      )}
-    </div>
   )
 }
 

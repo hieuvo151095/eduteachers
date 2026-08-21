@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { CheckInButton, type CheckInStatus } from './check-in-button'
 
@@ -90,9 +90,30 @@ function IconTraoDoI() {
   )
 }
 
-// ─── Entry point config ──────────────────────────────────────────────────────
+function IconKetQuaHocTap() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 6h16l6 6v22a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+      <path d="M25 6v6h6" />
+      <path d="M13 24l4-5 4 3 5-7" />
+    </svg>
+  )
+}
 
-const ENTRY_POINTS = [
+function IconPhieuBeNgoan() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="9" width="26" height="24" rx="3" />
+      <path d="M20 15l2.2 4.4 4.8.7-3.5 3.4.8 4.8-4.3-2.3-4.3 2.3.8-4.8-3.5-3.4 4.8-.7z" />
+    </svg>
+  )
+}
+
+// ─── Entry point config ──────────────────────────────────────────────────────
+// Home screen holds a max of 8 entry points per page; swipe left reveals
+// page 2. "Kết quả học tập" and "Phiếu bé ngoan" are the new items on page 2.
+
+const ENTRY_POINTS_PAGE_1 = [
   { id: 'diem-danh',  label: 'Điểm danh',         Icon: IconDiemDanh },
   { id: 'danh-sach', label: 'Danh sách\nhọc sinh', Icon: IconDanhSach },
   { id: 'hoat-dong', label: 'Hoạt động',           Icon: IconHoatDong },
@@ -102,6 +123,13 @@ const ENTRY_POINTS = [
   { id: 'thuc-don',  label: 'Thực đơn\nlớp',       Icon: IconThucDon },
   { id: 'trao-doi',  label: 'Trao đổi',            Icon: IconTraoDoI },
 ]
+
+const ENTRY_POINTS_PAGE_2 = [
+  { id: 'ket-qua-hoc-tap', label: 'Kết quả\nhọc tập', Icon: IconKetQuaHocTap },
+  { id: 'phieu-be-ngoan', label: 'Phiếu bé\nngoan', Icon: IconPhieuBeNgoan },
+]
+
+const ENTRY_POINT_PAGES = [ENTRY_POINTS_PAGE_1, ENTRY_POINTS_PAGE_2]
 
 // ─── Attendance mock data ────────────────────────────────────────────────────
 
@@ -117,12 +145,28 @@ interface TeachersHomeScreenProps {
   onNavigateToThucDon: () => void
   onNavigateToDiemDanh: () => void
   onNavigateToMessaging: () => void
+  onNavigateToKetQuaHocTap: () => void
+  onNavigateToPhieuBeNgoan: () => void
 }
 
-export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, onNavigateToMessaging }: TeachersHomeScreenProps) {
+export function TeachersHomeScreen({
+  onNavigateToThucDon,
+  onNavigateToDiemDanh,
+  onNavigateToMessaging,
+  onNavigateToKetQuaHocTap,
+  onNavigateToPhieuBeNgoan,
+}: TeachersHomeScreenProps) {
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('none' as CheckInStatus)
   const [checkInTime, setCheckInTime] = useState<string>()
   const [checkOutTime, setCheckOutTime] = useState<string>()
+  const [entryPage, setEntryPage] = useState(0)
+  const entryScrollRef = useRef<HTMLDivElement>(null)
+
+  const handleEntryScroll = () => {
+    const el = entryScrollRef.current
+    if (!el) return
+    setEntryPage(Math.round(el.scrollLeft / el.clientWidth))
+  }
 
   const handleCheckInStatusChange = (status: CheckInStatus, inTime?: string, outTime?: string) => {
     setCheckInStatus(status)
@@ -232,29 +276,52 @@ export function TeachersHomeScreen({ onNavigateToThucDon, onNavigateToDiemDanh, 
 
       {/* ── Feature entry points ───────────────────────────────────────────── */}
       <div className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white px-4 py-4">
-        <div className="grid grid-cols-4 gap-x-2 gap-y-5">
-          {ENTRY_POINTS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={
-                id === 'thuc-don' ? onNavigateToThucDon :
-                id === 'diem-danh' ? onNavigateToDiemDanh :
-                id === 'trao-doi' ? onNavigateToMessaging :
-                undefined
-              }
-              className="relative flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"
-            >
-              {/* Unread badge for Trao đổi */}
-              {id === 'trao-doi' && (
-                <div className="absolute right-2 top-0 h-2 w-2 rounded-full bg-red-500" />
-              )}
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-black">
-                <Icon />
-              </div>
-              <span className="whitespace-pre-line text-center text-[11px] leading-tight text-black">
-                {label}
-              </span>
-            </button>
+        <div
+          ref={entryScrollRef}
+          onScroll={handleEntryScroll}
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {ENTRY_POINT_PAGES.map((page, pageIdx) => (
+            <div key={pageIdx} className="grid w-full shrink-0 snap-start grid-cols-4 gap-x-2 gap-y-5">
+              {page.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={
+                    id === 'thuc-don' ? onNavigateToThucDon :
+                    id === 'diem-danh' ? onNavigateToDiemDanh :
+                    id === 'trao-doi' ? onNavigateToMessaging :
+                    id === 'ket-qua-hoc-tap' ? onNavigateToKetQuaHocTap :
+                    id === 'phieu-be-ngoan' ? onNavigateToPhieuBeNgoan :
+                    undefined
+                  }
+                  className="relative flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"
+                >
+                  {/* Unread badge for Trao đổi */}
+                  {id === 'trao-doi' && (
+                    <div className="absolute right-2 top-0 h-2 w-2 rounded-full bg-red-500" />
+                  )}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2.5 text-black">
+                    <Icon />
+                  </div>
+                  <span className="whitespace-pre-line text-center text-[11px] leading-tight text-black">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Page dots */}
+        <div className="mt-3 flex justify-center gap-1.5">
+          {ENTRY_POINT_PAGES.map((_, idx) => (
+            <div
+              key={idx}
+              className={`h-1.5 rounded-full transition-all ${
+                entryPage === idx ? 'w-4 bg-black' : 'w-1.5 bg-gray-300'
+              }`}
+            />
           ))}
         </div>
       </div>

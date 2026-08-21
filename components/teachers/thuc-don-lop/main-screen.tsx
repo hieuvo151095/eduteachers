@@ -52,15 +52,15 @@ export function MainScreen({
       </button>
 
       {/* Tab bar ngày */}
-      <div className="flex gap-1.5 overflow-x-auto border-b border-gray-100 px-3 py-3 scrollbar-hide">
+      <div className="flex gap-1.5 border-b border-gray-100 px-3 py-3">
         {week.days.map((d, idx) => {
           const isActive = idx === selectedDayIndex
           return (
             <button
               key={d.date}
               onClick={() => onSelectDay(idx)}
-              className={`flex min-w-[44px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 ${
-                isActive ? 'border-2 border-blue-600' : 'border border-transparent'
+              className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-1.5 ${
+                isActive ? 'border-2 border-blue-600' : 'border border-gray-200'
               }`}
             >
               <span className="text-[10px] font-medium leading-none text-gray-600">{d.thu}</span>

@@ -746,3 +746,448 @@ export const MOCK_TEACHER_INFO = {
   className: 'Lớp 6A2',
   studentCount: 32,
 }
+
+// ─── Kết quả học tập (Student Report Card) Types ───────────────────────────
+//
+// New feature — no precedent elsewhere in this codebase. Cloned from a
+// Parent-app spec (ket-qua-hoc-tap-flow-spec.md) into Teacher app. Unlike
+// every other feature here, this one is inherently per-STUDENT, not
+// per-class — so it adds a second picker layer (chọn lớp → chọn học sinh)
+// on top of the class-picker pattern already used by Điểm danh/Thực đơn lớp.
+// Subject lists + which subjects get a numeric điểm vs Đạt/Chưa đạt are
+// sourced from the school's real Thông tư 22/27 grading matrices (supplied
+// separately), not the spec's screenshots — those mixed subjects from
+// multiple grade levels into one demo list.
+
+export type CapHoc = 1 | 2 | 3
+
+export function capHocFromGrade(grade: number): CapHoc {
+  if (grade <= 5) return 1
+  if (grade <= 9) return 2
+  return 3
+}
+
+export interface KetQuaHocTapClass extends ClassInfo {
+  grade: number
+}
+
+// Feature-scoped class list (separate from MOCK_CLASSES/DIEM_DANH_CLASSES,
+// same pattern already used for Điểm danh) — one class per cấp học so the
+// branching UI (Cấp 1 vs Cấp 2&3) can be demoed end to end.
+// Names intentionally bare (no "Lớp " prefix) — classSubtitle() adds that
+// prefix itself; MOCK_CLASSES baking "Lớp " into the name is a pre-existing
+// quirk elsewhere in the codebase that doubles up the prefix, not repeated here.
+export const KET_QUA_HOC_TAP_CLASSES: KetQuaHocTapClass[] = [
+  { id: 'kqht-class-1', name: '1A', grade: 1 },
+  { id: 'kqht-class-2', name: '8A1', grade: 8, isHomeroom: true },
+  { id: 'kqht-class-3', name: '11A1', grade: 11 },
+]
+
+export interface KetQuaHocTapStudent {
+  id: string
+  classId: string
+  name: string
+  // Second student per class carries real scores; the first is left at the
+  // "—" empty state to match the spec's original screenshots.
+  hasScores: boolean
+}
+
+export const KET_QUA_HOC_TAP_STUDENTS: KetQuaHocTapStudent[] = [
+  { id: 'kqht-student-1', classId: 'kqht-class-1', name: 'Nguyễn Minh An', hasScores: false },
+  { id: 'kqht-student-2', classId: 'kqht-class-1', name: 'Trần Bảo Ngọc', hasScores: true },
+  { id: 'kqht-student-3', classId: 'kqht-class-2', name: 'Lê Gia Huy', hasScores: false },
+  { id: 'kqht-student-4', classId: 'kqht-class-2', name: 'Phạm Thùy Linh', hasScores: true },
+  { id: 'kqht-student-5', classId: 'kqht-class-3', name: 'Vũ Đức Anh', hasScores: false },
+  { id: 'kqht-student-6', classId: 'kqht-class-3', name: 'Đỗ Thu Hà', hasScores: true },
+]
+
+interface KQHTSubject {
+  id: string
+  name: string
+  /** true = có điểm số (KTĐK / ĐĐGTX-GK-CK-TBHK); false = chỉ Đạt/Chưa đạt */
+  scored: boolean
+}
+
+// Lớp 1 — 8 môn bắt buộc thực tế (Tin học&CN, Lịch sử-Địa lý, Khoa học chỉ
+// bắt đầu từ lớp 3+/4+; Ngoại ngữ 1 ở lớp 1-2 chỉ là tự chọn/làm quen nên
+// không tính là môn có đánh giá chính thức).
+const CAP1_SUBJECTS: KQHTSubject[] = [
+  { id: 'tieng-viet', name: 'Tiếng Việt', scored: true },
+  { id: 'toan', name: 'Toán', scored: true },
+  { id: 'dao-duc', name: 'Đạo đức', scored: false },
+  { id: 'tnxh', name: 'Tự nhiên và Xã hội', scored: false },
+  { id: 'gdtc', name: 'Giáo dục thể chất', scored: false },
+  { id: 'am-nhac', name: 'Nghệ thuật – Âm nhạc', scored: false },
+  { id: 'mi-thuat', name: 'Nghệ thuật – Mĩ thuật', scored: false },
+  { id: 'hdtn', name: 'Hoạt động trải nghiệm', scored: false },
+]
+
+// Lớp 8 (THCS) — 13 môn bắt buộc, bỏ 2 môn tự chọn (Tiếng DTTS/Ngoại ngữ 2).
+const THCS_SUBJECTS: KQHTSubject[] = [
+  { id: 'ngu-van', name: 'Ngữ văn', scored: true },
+  { id: 'toan', name: 'Toán', scored: true },
+  { id: 'ngoai-ngu-1', name: 'Ngoại ngữ 1', scored: true },
+  { id: 'gdcd', name: 'GDCD', scored: true },
+  { id: 'lich-su-dia-li', name: 'Lịch sử và Địa lí', scored: true },
+  { id: 'khtn', name: 'Khoa học tự nhiên', scored: true },
+  { id: 'cong-nghe', name: 'Công nghệ', scored: true },
+  { id: 'tin-hoc', name: 'Tin học', scored: true },
+  { id: 'gdtc', name: 'Giáo dục thể chất', scored: false },
+  { id: 'am-nhac', name: 'Nghệ thuật – Âm nhạc', scored: false },
+  { id: 'mi-thuat', name: 'Nghệ thuật – Mĩ thuật', scored: false },
+  { id: 'hdtn-hn', name: 'Hoạt động trải nghiệm, hướng nghiệp', scored: false },
+  { id: 'gd-dia-phuong', name: 'Nội dung giáo dục của địa phương', scored: false },
+]
+
+// Lớp 11 (THPT) — 8 môn bắt buộc + tổ hợp lựa chọn Khoa học tự nhiên
+// (Vật lí, Hóa học, Sinh học).
+const THPT_SUBJECTS: KQHTSubject[] = [
+  { id: 'ngu-van', name: 'Ngữ văn', scored: true },
+  { id: 'toan', name: 'Toán', scored: true },
+  { id: 'ngoai-ngu-1', name: 'Ngoại ngữ 1', scored: true },
+  { id: 'lich-su', name: 'Lịch sử', scored: true },
+  { id: 'gdqp-an', name: 'Giáo dục quốc phòng và an ninh', scored: true },
+  { id: 'vat-li', name: 'Vật lí', scored: true },
+  { id: 'hoa-hoc', name: 'Hóa học', scored: true },
+  { id: 'sinh-hoc', name: 'Sinh học', scored: true },
+  { id: 'gdtc', name: 'Giáo dục thể chất', scored: false },
+  { id: 'hdtn-hn', name: 'Hoạt động trải nghiệm, hướng nghiệp', scored: false },
+  { id: 'gd-dia-phuong', name: 'Nội dung giáo dục của địa phương', scored: false },
+]
+
+function subjectsForClass(classId: string): KQHTSubject[] {
+  if (classId === 'kqht-class-1') return CAP1_SUBJECTS
+  if (classId === 'kqht-class-2') return THCS_SUBJECTS
+  return THPT_SUBJECTS
+}
+
+// ── Cấp 1 (Tiểu học) ────────────────────────────────────────────────────
+
+export type Cap1TabId = 'giua-hk1' | 'hk1' | 'giua-hk2' | 'cuoi-nam'
+
+export const CAP1_TABS: { id: Cap1TabId; label: string }[] = [
+  { id: 'giua-hk1', label: 'Giữa học kỳ I' },
+  { id: 'hk1', label: 'Học kỳ I' },
+  { id: 'giua-hk2', label: 'Giữa học kỳ II' },
+  { id: 'cuoi-nam', label: 'Cuối năm' },
+]
+
+export interface Cap1MonHocRow {
+  name: string
+  ktdk: string
+  mucDatDuoc: string
+}
+
+export interface Cap1NangLucRow {
+  name: string
+  mucDatDuoc: string
+}
+
+export interface Cap1TabData {
+  monHoc: Cap1MonHocRow[]
+  nangLucChung: Cap1NangLucRow[]
+  nangLucDacThu: Cap1NangLucRow[]
+  phamChat: Cap1NangLucRow[]
+}
+
+const NANG_LUC_CHUNG_NAMES = ['Tự chủ và tự học', 'Giao tiếp và hợp tác', 'Giải quyết vấn đề và sáng tạo']
+const NANG_LUC_DAC_THU_NAMES = ['Ngôn ngữ', 'Tính toán', 'Khoa học', 'Công nghệ', 'Tin học', 'Thẩm mĩ', 'Thể chất']
+const PHAM_CHAT_NAMES = ['Yêu nước', 'Nhân ái', 'Chăm chỉ', 'Trung thực', 'Trách nhiệm']
+
+/** Card 1 (theo môn): Hoàn thành tốt (T) / Hoàn thành (H) / Chưa hoàn thành (C) */
+const CARD1_MUC = ['T', 'H', 'C']
+/** Card 2/3 (Năng lực, Phẩm chất): Tốt (T) / Đạt (Đ) / Cần cố gắng (C) */
+const CARD23_MUC = ['T', 'Đ', 'C']
+
+export function getCap1TabData(studentId: string, classId: string, tabIndex: number): Cap1TabData {
+  const student = KET_QUA_HOC_TAP_STUDENTS.find((s) => s.id === studentId)
+  const hasScores = student?.hasScores ?? false
+  const subjects = subjectsForClass(classId)
+  // KTĐK (điểm định kỳ) chỉ áp dụng cho môn "scored", và chỉ xuất hiện ở Học
+  // kỳ I (cuối kỳ I) / Cuối năm — không có ở 2 mốc giữa kỳ (theo Thông tư 27).
+  const showKtdk = tabIndex === 1 || tabIndex === 3
+
+  const monHoc: Cap1MonHocRow[] = subjects.map((s, i) => {
+    if (!hasScores) return { name: s.name, ktdk: '—', mucDatDuoc: '—' }
+    const ktdk = s.scored && showKtdk ? String(7 + ((i + tabIndex) % 4)) : '—'
+    const mucDatDuoc = CARD1_MUC[(i + tabIndex) % CARD1_MUC.length]
+    return { name: s.name, ktdk, mucDatDuoc }
+  })
+
+  const buildNangLucRows = (names: string[]): Cap1NangLucRow[] =>
+    names.map((name, i) => ({
+      name,
+      mucDatDuoc: hasScores ? CARD23_MUC[(i + tabIndex) % CARD23_MUC.length] : '—',
+    }))
+
+  return {
+    monHoc,
+    nangLucChung: buildNangLucRows(NANG_LUC_CHUNG_NAMES),
+    nangLucDacThu: buildNangLucRows(NANG_LUC_DAC_THU_NAMES),
+    phamChat: buildNangLucRows(PHAM_CHAT_NAMES),
+  }
+}
+
+// ── Cấp 2 & 3 (THCS & THPT) ─────────────────────────────────────────────
+
+export type Cap23TabId = 'hk1' | 'hk2' | 'ca-nam'
+
+export const CAP23_TABS: { id: Cap23TabId; label: string }[] = [
+  { id: 'hk1', label: 'Học kỳ I' },
+  { id: 'hk2', label: 'Học kỳ II' },
+  { id: 'ca-nam', label: 'Cả năm' },
+]
+
+/** ĐĐGTX = Điểm đánh giá thường xuyên — 5 đầu điểm con. */
+export const DDGTX_COLUMNS = ['Miệng', '15 phút', '1 tiết', '1 tiết', 'Thực hành']
+
+export interface Cap23BangDiemRow {
+  name: string
+  ddgtx: string[]
+  ddggk: string
+  ddgck: string
+  tbhk: string
+}
+
+export interface Cap23NhanXetRow {
+  subject: string
+  text: string
+}
+
+export interface Cap23TongKetRow {
+  danhMuc: string
+  /** 1 giá trị (Học kỳ I/II) hoặc 3 giá trị (Cả năm: HK1/HK2/Tổng kết) */
+  values: string[]
+}
+
+export interface Cap23HocKyData {
+  tongKet: Cap23TongKetRow[]
+  bangDiem: Cap23BangDiemRow[]
+  nhanXet: Cap23NhanXetRow[]
+}
+
+export interface Cap23CaNamData {
+  tongKet: Cap23TongKetRow[]
+}
+
+const KET_QUA_HOC_TAP_LEVELS = ['Tốt', 'Khá', 'Đạt', 'Chưa đạt']
+
+const NHAN_XET_POOL = [
+  'Con học tập tích cực, tiếp thu bài tốt.',
+  'Con chăm chỉ, cần rèn thêm tính cẩn thận.',
+  'Con có tiến bộ rõ rệt so với đầu năm.',
+  'Con nắm chắc kiến thức cơ bản, phát biểu xây dựng bài tốt.',
+  'Con cần tập trung hơn trong giờ học.',
+  'Con tích cực tham gia hoạt động nhóm.',
+  'Con có năng khiếu, cần phát huy thêm.',
+  'Con hoàn thành tốt các bài kiểm tra.',
+  'Con cần luyện tập thêm ở nhà để củng cố kiến thức.',
+  'Con ngoan, lễ phép, ý thức học tập tốt.',
+  'Con sáng tạo trong cách trình bày bài làm.',
+  'Con cần cải thiện tốc độ làm bài.',
+  'Con tự giác, có trách nhiệm với nhiệm vụ được giao.',
+]
+
+function buildBangDiemRow(subject: KQHTSubject, i: number, tabIndex: number, hasScores: boolean): Cap23BangDiemRow {
+  if (!hasScores) {
+    return { name: subject.name, ddgtx: DDGTX_COLUMNS.map(() => '—'), ddggk: '—', ddgck: '—', tbhk: '—' }
+  }
+  if (!subject.scored) {
+    // Chỉ Nhận xét (Đạt/Chưa đạt) — các cột điểm thành phần không áp dụng,
+    // xếp loại cuối cùng hiện ở cột TBHK.
+    const passed = (i + tabIndex) % 5 !== 0
+    return {
+      name: subject.name,
+      ddgtx: DDGTX_COLUMNS.map(() => '—'),
+      ddggk: '—',
+      ddgck: '—',
+      tbhk: passed ? 'Đạt' : 'CĐ',
+    }
+  }
+  const base = 6 + ((i + tabIndex) % 4)
+  const ddgtx = DDGTX_COLUMNS.map((_, ci) => String(Math.min(10, base + ((ci + i) % 3))))
+  const ddggk = String(Math.min(10, base + 1))
+  const ddgck = String(Math.min(10, base))
+  const tbhk = (base + 0.5).toFixed(1)
+  return { name: subject.name, ddgtx, ddggk, ddgck, tbhk }
+}
+
+function buildNhanXet(subjects: KQHTSubject[], tabIndex: number): Cap23NhanXetRow[] {
+  return subjects.map((s, i) => ({
+    subject: s.name,
+    text: NHAN_XET_POOL[(i + tabIndex * 3) % NHAN_XET_POOL.length],
+  }))
+}
+
+export function getCap23HocKyData(studentId: string, classId: string, tabIndex: 0 | 1): Cap23HocKyData {
+  const student = KET_QUA_HOC_TAP_STUDENTS.find((s) => s.id === studentId)
+  const hasScores = student?.hasScores ?? false
+  const subjects = subjectsForClass(classId)
+
+  const tongKet: Cap23TongKetRow[] = [
+    { danhMuc: 'Kết quả học tập', values: [hasScores ? KET_QUA_HOC_TAP_LEVELS[tabIndex % 4] : '—'] },
+    { danhMuc: 'Kết quả hành vi', values: [hasScores ? KET_QUA_HOC_TAP_LEVELS[(tabIndex + 1) % 4] : '—'] },
+    { danhMuc: 'Số ngày nghỉ', values: [hasScores ? String(tabIndex + 1) : '—'] },
+  ]
+
+  return {
+    tongKet,
+    bangDiem: subjects.map((s, i) => buildBangDiemRow(s, i, tabIndex, hasScores)),
+    nhanXet: hasScores ? buildNhanXet(subjects, tabIndex) : [],
+  }
+}
+
+export function getCap23CaNamData(studentId: string): Cap23CaNamData {
+  const student = KET_QUA_HOC_TAP_STUDENTS.find((s) => s.id === studentId)
+  const hasScores = student?.hasScores ?? false
+
+  const tongKet: Cap23TongKetRow[] = [
+    {
+      danhMuc: 'Kết quả học tập',
+      values: hasScores
+        ? [KET_QUA_HOC_TAP_LEVELS[0], KET_QUA_HOC_TAP_LEVELS[1], KET_QUA_HOC_TAP_LEVELS[0]]
+        : ['—', '—', '—'],
+    },
+    {
+      danhMuc: 'Kết quả hành vi',
+      values: hasScores
+        ? [KET_QUA_HOC_TAP_LEVELS[1], KET_QUA_HOC_TAP_LEVELS[0], KET_QUA_HOC_TAP_LEVELS[0]]
+        : ['—', '—', '—'],
+    },
+    {
+      danhMuc: 'Số ngày nghỉ',
+      values: hasScores ? ['1', '2', '3'] : ['—', '—', '—'],
+    },
+  ]
+
+  return { tongKet }
+}
+
+// ─── Phiếu bé ngoan ─────────────────────────────────────────────────────────
+//
+// New feature — no precedent elsewhere. Reuses DIEM_DANH_CLASSES/STUDENTS per
+// the spec's explicit instruction (same 3 kids as Điểm danh); "Đổi lớp" is
+// cosmetic-only (header subtitle), matching how Điểm danh itself already
+// treats DIEM_DANH_STUDENTS as one flat roster regardless of selected class.
+
+export type PhieuChuKyLoai = 'tuan' | 'thang'
+
+export interface PhieuChuKyOption {
+  id: string
+  label: string
+}
+
+export const PHIEU_GHI_CHU_MAX_LENGTH = 150
+
+const PHIEU_TODAY = new Date(2026, 5, 30)
+
+function phieuFormatDate(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${dd}/${mm}/${yyyy}`
+}
+
+function phieuWeekOption(mondayOffsetWeeks: number): PhieuChuKyOption {
+  const start = new Date(PHIEU_TODAY)
+  // PHIEU_TODAY (30/06/2026) is a Tuesday; anchor to that week's Monday first.
+  start.setDate(start.getDate() - 1 + mondayOffsetWeeks * 7)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 5)
+  return { id: `phieu-tuan-${mondayOffsetWeeks}`, label: `${phieuFormatDate(start)} - ${phieuFormatDate(end)}` }
+}
+
+function phieuMonthOption(monthOffset: number): PhieuChuKyOption {
+  const d = new Date(PHIEU_TODAY.getFullYear(), PHIEU_TODAY.getMonth() + monthOffset, 1)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return { id: `phieu-thang-${monthOffset}`, label: `${mm}/${d.getFullYear()}` }
+}
+
+// -2..+3 tuần quanh hôm nay — chỉ số 0 là tuần hiện tại (mặc định khi phát mới)
+export const PHIEU_TUAN_OPTIONS: PhieuChuKyOption[] = [-2, -1, 0, 2, 3].map(phieuWeekOption)
+// -2..+1 tháng quanh hôm nay — chỉ số 0 là tháng hiện tại (mặc định khi phát mới)
+export const PHIEU_THANG_OPTIONS: PhieuChuKyOption[] = [-2, -1, 0, 1].map(phieuMonthOption)
+
+export const PHIEU_TUAN_DEFAULT_ID = phieuWeekOption(0).id
+export const PHIEU_THANG_DEFAULT_ID = phieuMonthOption(0).id
+
+export interface PhieuHocSinhKetQua {
+  studentId: string
+  dat: boolean
+  nhanXet?: string
+}
+
+export interface PhieuBeNgoan {
+  id: string
+  chuKyLoai: PhieuChuKyLoai
+  chuKyId: string
+  chuKyLabel: string
+  sentAt: string // ISO timestamp
+  ketQua: PhieuHocSinhKetQua[]
+}
+
+// Module-level mutable array (same pattern as messaging's DYNAMIC_GROUPS) so
+// phiếu phát mới/gửi lại trong phiên làm việc vẫn còn khi quay lại màn hình
+// Lịch sử, dù không có backend thật.
+export const PHIEU_BE_NGOAN_RECORDS: PhieuBeNgoan[] = [
+  {
+    id: 'phieu-1',
+    chuKyLoai: 'tuan',
+    chuKyId: 'phieu-tuan--2',
+    chuKyLabel: phieuWeekOption(-2).label,
+    sentAt: '2026-06-21T09:15:00.000Z',
+    ketQua: [
+      { studentId: 'dd-student-1', dat: true, nhanXet: 'Bé ngoan, biết chia sẻ đồ chơi với bạn.' },
+      { studentId: 'dd-student-2', dat: true },
+      { studentId: 'dd-student-3', dat: false },
+    ],
+  },
+  {
+    id: 'phieu-2',
+    chuKyLoai: 'tuan',
+    chuKyId: 'phieu-tuan--1',
+    chuKyLabel: phieuWeekOption(-1).label,
+    sentAt: '2026-06-28T09:00:00.000Z',
+    ketQua: [
+      { studentId: 'dd-student-1', dat: true },
+      { studentId: 'dd-student-2', dat: true, nhanXet: 'Con tích cực phát biểu trong giờ học.' },
+      { studentId: 'dd-student-3', dat: true },
+    ],
+  },
+  {
+    id: 'phieu-3',
+    chuKyLoai: 'tuan',
+    chuKyId: 'phieu-tuan-2',
+    chuKyLabel: phieuWeekOption(2).label,
+    sentAt: '2026-07-19T08:30:00.000Z',
+    ketQua: [
+      { studentId: 'dd-student-1', dat: true, nhanXet: 'Bé ngoan, biết chia sẻ đồ chơi với bạn.' },
+      { studentId: 'dd-student-2', dat: true },
+      { studentId: 'dd-student-3', dat: true },
+    ],
+  },
+  {
+    id: 'phieu-4',
+    chuKyLoai: 'thang',
+    chuKyId: 'phieu-thang--2',
+    chuKyLabel: phieuMonthOption(-2).label,
+    sentAt: '2026-05-31T10:00:00.000Z',
+    ketQua: [
+      { studentId: 'dd-student-1', dat: true },
+      { studentId: 'dd-student-2', dat: false },
+      { studentId: 'dd-student-3', dat: true, nhanXet: 'Con lễ phép, giúp cô dọn đồ chơi mỗi ngày.' },
+    ],
+  },
+  {
+    id: 'phieu-5',
+    chuKyLoai: 'tuan',
+    chuKyId: 'phieu-tuan-3',
+    chuKyLabel: phieuWeekOption(3).label,
+    sentAt: '2026-07-26T08:45:00.000Z',
+    ketQua: [
+      { studentId: 'dd-student-1', dat: true },
+      { studentId: 'dd-student-2', dat: true },
+      { studentId: 'dd-student-3', dat: true },
+    ],
+  },
+]

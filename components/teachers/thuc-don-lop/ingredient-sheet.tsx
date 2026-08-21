@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { X, ArrowUpRight } from 'lucide-react'
 import type { ThucDonMon, ThucDonNguyenLieu } from '@/lib/mock-data'
 
@@ -10,15 +9,10 @@ interface IngredientSheetProps {
 }
 
 function IngredientCard({ ingredient, defaultExpanded }: { ingredient: ThucDonNguyenLieu; defaultExpanded: boolean }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
-
   return (
-    <button
-      onClick={() => setExpanded((v) => !v)}
-      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left"
-    >
+    <div className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left">
       <p className="text-sm font-semibold text-black">{ingredient.name}</p>
-      {expanded && (
+      {defaultExpanded && (
         <div className="mt-2 space-y-1.5 border-t border-gray-200 pt-2">
           {ingredient.coSoSanXuat && (
             <div className="flex items-start justify-between gap-3">
@@ -41,7 +35,7 @@ function IngredientCard({ ingredient, defaultExpanded }: { ingredient: ThucDonNg
           )}
         </div>
       )}
-    </button>
+    </div>
   )
 }
 

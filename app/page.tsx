@@ -5,9 +5,13 @@ import { TeachersHomeScreen } from '@/components/teachers/home-screen'
 import { ThucDonLopApp } from '@/components/teachers/thuc-don-lop'
 import { AttendanceApp } from '@/components/teachers/attendance'
 import { MessagingApp } from '@/components/teachers/messaging'
+import { KetQuaHocTapApp } from '@/components/teachers/ket-qua-hoc-tap'
+import { PhieuBeNgoanApp } from '@/components/teachers/phieu-be-ngoan'
 
 export default function Page() {
-  const [screen, setScreen] = useState<'home' | 'thuc-don' | 'attendance' | 'messaging'>('home')
+  const [screen, setScreen] = useState<
+    'home' | 'thuc-don' | 'attendance' | 'messaging' | 'ket-qua-hoc-tap' | 'phieu-be-ngoan'
+  >('home')
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-300 p-6">
@@ -67,13 +71,22 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Scrollable screen content */}
-          <div className="relative flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+          {/* Scrollable screen content — the transform below establishes this
+              as the containing block for any `position: fixed` descendant
+              (e.g. bottom sheets), so they anchor to the visible phone
+              viewport instead of escaping to the real browser window or, if
+              `absolute`, stretching to the height of tall scrollable content. */}
+          <div
+            className="relative flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+            style={{ transform: 'translateZ(0)' }}
+          >
             {screen === 'home' && (
-              <TeachersHomeScreen 
+              <TeachersHomeScreen
                 onNavigateToThucDon={() => setScreen('thuc-don')}
                 onNavigateToDiemDanh={() => setScreen('attendance')}
                 onNavigateToMessaging={() => setScreen('messaging')}
+                onNavigateToKetQuaHocTap={() => setScreen('ket-qua-hoc-tap')}
+                onNavigateToPhieuBeNgoan={() => setScreen('phieu-be-ngoan')}
               />
             )}
 
@@ -100,6 +113,12 @@ export default function Page() {
             )}
             {screen === 'messaging' && (
               <MessagingApp onBack={() => setScreen('home')} />
+            )}
+            {screen === 'ket-qua-hoc-tap' && (
+              <KetQuaHocTapApp onBack={() => setScreen('home')} />
+            )}
+            {screen === 'phieu-be-ngoan' && (
+              <PhieuBeNgoanApp onBack={() => setScreen('home')} />
             )}
           </div>
 

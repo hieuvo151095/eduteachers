@@ -12,7 +12,7 @@ interface ClassPickerSheetProps {
 
 export function ClassPickerSheet({ classes, selectedClassId, onSelect, onClose }: ClassPickerSheetProps) {
   return (
-    <div className="absolute inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onClose}>
       <div className="rounded-t-2xl bg-white pb-6" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-gray-300" />
         <div className="relative flex items-center justify-center px-4 py-3">

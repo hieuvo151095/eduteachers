@@ -17,10 +17,6 @@ interface PhieuBeNgoanAppProps {
 }
 
 type InternalScreen = 'phat-phieu' | 'lich-su'
-// Where the "phát phiếu" screen's back button should lead — 'home' for the
-// initial entry from the home screen, 'lich-su' when reached by picking a
-// card (or "+ Phát phiếu mới") from the history list.
-type PhatPhieuOrigin = 'home' | 'lich-su'
 
 function Toast({ message, visible }: { message: string; visible: boolean }) {
   return (
@@ -37,9 +33,8 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
   const [selectedClass, setSelectedClass] = useState<ClassInfo>(DIEM_DANH_CLASSES[0])
   const [showClassPicker, setShowClassPicker] = useState(false)
-  const [screen, setScreen] = useState<InternalScreen>('phat-phieu')
+  const [screen, setScreen] = useState<InternalScreen>('lich-su')
   const [editingPhieu, setEditingPhieu] = useState<PhieuBeNgoan | undefined>(undefined)
-  const [phatPhieuOrigin, setPhatPhieuOrigin] = useState<PhatPhieuOrigin>('home')
   // Bumped after every mutation to PHIEU_BE_NGOAN_RECORDS so React re-renders
   // and re-reads the module-level array (mutated in place, no state of its own).
   const [, setRecordsVersion] = useState(0)
@@ -56,10 +51,6 @@ export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
   const latestRecordId = records[0]?.id
   // Chỉ phiếu gần nhất được sửa/gửi lại; các phiếu cũ hơn mở ở chế độ chỉ xem.
   const isEditingReadOnly = !!editingPhieu && editingPhieu.id !== latestRecordId
-
-  const handleSave = () => {
-    showToast('Đã lưu nháp')
-  }
 
   const handleSend = (result: Omit<PhieuBeNgoan, 'id' | 'sentAt'>) => {
     const sentAt = new Date().toISOString()
@@ -86,10 +77,8 @@ export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
           students={DIEM_DANH_STUDENTS}
           existingPhieu={editingPhieu}
           readOnly={isEditingReadOnly}
-          onBack={phatPhieuOrigin === 'lich-su' ? () => setScreen('lich-su') : onBack}
+          onBack={() => setScreen('lich-su')}
           onChangeClass={() => setShowClassPicker(true)}
-          onOpenLichSu={() => setScreen('lich-su')}
-          onSave={handleSave}
           onSend={handleSend}
         />
       )}
@@ -99,16 +88,14 @@ export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
           selectedClass={selectedClass}
           students={DIEM_DANH_STUDENTS}
           records={records}
-          onBack={() => setScreen('phat-phieu')}
+          onBack={onBack}
           onChangeClass={() => setShowClassPicker(true)}
           onCreateNew={() => {
             setEditingPhieu(undefined)
-            setPhatPhieuOrigin('lich-su')
             setScreen('phat-phieu')
           }}
           onOpenRecord={(record) => {
             setEditingPhieu(record)
-            setPhatPhieuOrigin('lich-su')
             setScreen('phat-phieu')
           }}
         />

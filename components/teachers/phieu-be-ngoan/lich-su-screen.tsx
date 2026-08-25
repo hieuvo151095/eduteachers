@@ -36,21 +36,11 @@ export function LichSuScreen({
   return (
     <div className="flex flex-col bg-white">
       <AppHeader
-        title="Lịch sử phát phiếu"
+        title="Phiếu bé ngoan"
         subtitle={classSubtitle(selectedClass)}
         onBack={onBack}
         onChangeClass={onChangeClass}
       />
-
-      <div className="px-4 py-3">
-        <button
-          onClick={onCreateNew}
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-blue-500 py-2.5 text-sm font-semibold text-blue-600 active:bg-blue-50"
-        >
-          <Plus size={16} />
-          Phát phiếu mới
-        </button>
-      </div>
 
       {records.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
@@ -93,6 +83,19 @@ export function LichSuScreen({
           })}
         </div>
       )}
+
+      {/* Spacer so the fixed action bar never covers the last record row */}
+      <div className="h-20" />
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white px-4 py-3">
+        <button
+          onClick={onCreateNew}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white active:bg-blue-700"
+        >
+          <Plus size={16} />
+          Phát phiếu mới
+        </button>
+      </div>
     </div>
   )
 }

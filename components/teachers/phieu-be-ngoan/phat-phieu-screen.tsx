@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ChevronRight, History, Lock } from 'lucide-react'
+import { Check, ChevronRight, Lock } from 'lucide-react'
 import {
   PHIEU_GHI_CHU_MAX_LENGTH,
   PHIEU_THANG_DEFAULT_ID,
@@ -46,8 +46,6 @@ interface PhatPhieuScreenProps {
   readOnly?: boolean
   onBack: () => void
   onChangeClass: () => void
-  onOpenLichSu: () => void
-  onSave: () => void
   onSend: (result: Omit<PhieuBeNgoan, 'id' | 'sentAt'>) => void
 }
 
@@ -71,8 +69,6 @@ export function PhatPhieuScreen({
   readOnly = false,
   onBack,
   onChangeClass,
-  onOpenLichSu,
-  onSave,
   onSend,
 }: PhatPhieuScreenProps) {
   const [chuKyLoai, setChuKyLoai] = useState<PhieuChuKyLoai>(existingPhieu?.chuKyLoai ?? 'tuan')
@@ -162,22 +158,11 @@ export function PhatPhieuScreen({
   return (
     <div className="flex flex-col bg-white">
       <AppHeader
-        title="Phiếu bé ngoan"
+        title="Phát phiếu mới"
         subtitle={classSubtitle(selectedClass)}
         onBack={onBack}
         onChangeClass={onChangeClass}
       />
-
-      <button
-        onClick={onOpenLichSu}
-        className="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-left active:bg-gray-50"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-          <History size={16} />
-          Lịch sử phát phiếu
-        </span>
-        <ChevronRight size={16} className="shrink-0 text-gray-400" />
-      </button>
 
       {readOnly && (
         <div className="flex items-center gap-2 border-b border-gray-100 bg-amber-50 px-4 py-2.5">
@@ -324,13 +309,7 @@ export function PhatPhieuScreen({
       {!readOnly && <div className="h-24" />}
 
       {!readOnly && (
-        <div className="fixed inset-x-0 bottom-0 z-40 space-y-2 border-t border-gray-100 bg-white px-4 py-3">
-          <button
-            onClick={onSave}
-            className="w-full rounded-xl border border-gray-300 py-3 text-sm font-semibold text-black active:bg-gray-50"
-          >
-            Lưu
-          </button>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white px-4 py-3">
           <button
             onClick={handleSend}
             className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white active:bg-blue-700"

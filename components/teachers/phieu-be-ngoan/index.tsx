@@ -5,6 +5,7 @@ import {
   DIEM_DANH_CLASSES,
   DIEM_DANH_STUDENTS,
   PHIEU_BE_NGOAN_RECORDS,
+  PHIEU_TUAN_DEFAULT_ID,
   type ClassInfo,
   type PhieuBeNgoan,
 } from '@/lib/mock-data'
@@ -35,6 +36,9 @@ export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
   const [showClassPicker, setShowClassPicker] = useState(false)
   const [screen, setScreen] = useState<InternalScreen>('lich-su')
   const [editingPhieu, setEditingPhieu] = useState<PhieuBeNgoan | undefined>(undefined)
+  // Tuần chọn sẵn khi vào màn Phát phiếu mới qua "Phát bù ngay" — chỉ áp
+  // dụng cho lần vào màn kế tiếp, không "dính" lại cho các lần tạo mới sau.
+  const [phatBuChuKyId, setPhatBuChuKyId] = useState<string | undefined>(undefined)
   // Bumped after every mutation to PHIEU_BE_NGOAN_RECORDS so React re-renders
   // and re-reads the module-level array (mutated in place, no state of its own).
   const [, setRecordsVersion] = useState(0)
@@ -45,41 +49,52 @@ export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
     setTimeout(() => setToast({ visible: false, message: '' }), 3000)
   }
 
-  const records = [...PHIEU_BE_NGOAN_RECORDS].sort(
+  const records = PHIEU_BE_NGOAN_RECORDS.filter((r) => r.classId === selectedClass.id).sort(
     (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
   )
-  const latestRecordId = records[0]?.id
-  // Chỉ phiếu gần nhất được sửa/gửi lại; các phiếu cũ hơn mở ở chế độ chỉ xem.
-  const isEditingReadOnly = !!editingPhieu && editingPhieu.id !== latestRecordId
 
-  const handleSend = (result: Omit<PhieuBeNgoan, 'id' | 'sentAt'>) => {
+  // 1 tuần có thể gửi theo nhiều đợt — nếu lớp đã có phiếu cho đúng tuần này
+  // rồi thì gộp (upsert) vào bản ghi đó thay vì tạo phiếu trùng cho cùng 1 tuần.
+  const handleSend = (result: Omit<PhieuBeNgoan, 'id' | 'sentAt' | 'classId'>) => {
     const sentAt = new Date().toISOString()
-    if (editingPhieu) {
-      const idx = PHIEU_BE_NGOAN_RECORDS.findIndex((r) => r.id === editingPhieu.id)
-      if (idx !== -1) {
-        PHIEU_BE_NGOAN_RECORDS[idx] = { ...editingPhieu, ...result, sentAt }
-      }
-      showToast('Đã gửi lại thông báo tới phụ huynh')
+    const idx = PHIEU_BE_NGOAN_RECORDS.findIndex(
+      (r) => r.classId === selectedClass.id && r.chuKyId === result.chuKyId
+    )
+    if (idx !== -1) {
+      PHIEU_BE_NGOAN_RECORDS[idx] = { ...PHIEU_BE_NGOAN_RECORDS[idx], ...result, sentAt }
     } else {
-      PHIEU_BE_NGOAN_RECORDS.unshift({ id: `phieu-${Date.now()}`, sentAt, ...result })
-      showToast('Đã gửi thông báo tới phụ huynh')
+      PHIEU_BE_NGOAN_RECORDS.unshift({ id: `phieu-${Date.now()}`, classId: selectedClass.id, sentAt, ...result })
     }
+    showToast('Đã gửi thông báo tới phụ huynh')
     setRecordsVersion((v) => v + 1)
     setEditingPhieu(undefined)
+    setPhatBuChuKyId(undefined)
     setScreen('lich-su')
   }
 
+  const handlePhatBuNgay = (chuKyId: string) => {
+    setEditingPhieu(undefined)
+    setPhatBuChuKyId(chuKyId)
+    setScreen('phat-phieu')
+  }
+
   return (
-    <div className="relative flex min-h-full flex-col bg-white">
+    <div className="relative flex h-full min-h-0 flex-col bg-white">
       {screen === 'phat-phieu' && (
         <PhatPhieuScreen
           selectedClass={selectedClass}
           students={DIEM_DANH_STUDENTS}
+          records={records}
           existingPhieu={editingPhieu}
-          readOnly={isEditingReadOnly}
-          onBack={() => setScreen('lich-su')}
+          initialChuKyId={phatBuChuKyId}
+          onBack={() => {
+            setPhatBuChuKyId(undefined)
+            setScreen('lich-su')
+          }}
           onChangeClass={() => setShowClassPicker(true)}
           onSend={handleSend}
+          onOpenExistingRecord={(record) => setEditingPhieu(record)}
+          onPhatBuNgay={handlePhatBuNgay}
         />
       )}
 
@@ -91,13 +106,19 @@ export function PhieuBeNgoanApp({ onBack }: PhieuBeNgoanAppProps) {
           onBack={onBack}
           onChangeClass={() => setShowClassPicker(true)}
           onCreateNew={() => {
-            setEditingPhieu(undefined)
+            // Tuần mặc định (hiện tại) có thể đã được phát (1 phần hoặc đủ)
+            // rồi — nếu vậy mở thẳng phiếu đó thay vì 1 form trống, tránh
+            // tạo phiếu trùng cho cùng 1 tuần.
+            const alreadySent = records.find((r) => r.chuKyId === PHIEU_TUAN_DEFAULT_ID)
+            setEditingPhieu(alreadySent)
+            setPhatBuChuKyId(undefined)
             setScreen('phat-phieu')
           }}
           onOpenRecord={(record) => {
             setEditingPhieu(record)
             setScreen('phat-phieu')
           }}
+          onPhatBuNgay={handlePhatBuNgay}
         />
       )}
 

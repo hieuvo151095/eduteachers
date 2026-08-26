@@ -329,9 +329,11 @@ interface ScreenListProps {
 }
 
 const CLASS_FILTERS = ['6A2', '8A1', '7B1']
+const CONVERSATIONS_PER_PAGE = 10
 
 function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversation, onCreateGroup, onBack }: ScreenListProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(1)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const filtered = getAllConversations().filter((c) => {
@@ -342,6 +344,18 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
     const matchesClass = activeClassFilter === '' || c.classFilter === activeClassFilter
     return matchesSearch && matchesClass
   })
+
+  // Quay lại trang 1 mỗi khi bộ lọc lớp/tìm kiếm đổi, tránh dừng ở 1 trang trống.
+  useEffect(() => {
+    setPage(1)
+  }, [activeClassFilter, searchQuery])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / CONVERSATIONS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const pageItems = filtered.slice(
+    (currentPage - 1) * CONVERSATIONS_PER_PAGE,
+    currentPage * CONVERSATIONS_PER_PAGE
+  )
 
   return (
     <div className="flex flex-col h-full">
@@ -415,12 +429,12 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
         </div>
       </div>
 
-      {/* Conversation list — each item in its own card frame */}
+      {/* Conversation list — each item in its own card frame, max 10/trang */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {filtered.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-gray-400">Không tìm thấy cuộc trò chuyện</p>
         )}
-        {filtered.map((conv) => {
+        {pageItems.map((conv) => {
           const isGroup = conv.type === 'group'
           const count = conv.participantIds.length
           const primaryName = conv.type === 'direct' ? conv.studentName ?? conv.displayName : conv.displayName
@@ -458,6 +472,28 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
         })}
       </div>
 
+      {/* Pagination — tối đa 10 cuộc trò chuyện mỗi trang */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 border-t border-gray-100 bg-white px-4 py-2.5">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-xs font-medium text-gray-600">
+            Trang {currentPage}/{totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -473,7 +509,10 @@ interface ScreenDirectChatProps {
 
 function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack }: ScreenDirectChatProps) {
   const conversation = getAllConversations().find((c) => c.id === conversationId)
-  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(MOCK_MESSAGES_DIRECT)
+  // Trao đổi "Cá nhân" mới tạo chưa từng có tin nhắn — chỉ các cuộc trò
+  // chuyện có sẵn (không nằm trong DYNAMIC_GROUPS) mới dùng lịch sử mẫu.
+  const isNewConversation = DYNAMIC_GROUPS.some((g) => g.conv.id === conversationId)
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(isNewConversation ? [] : MOCK_MESSAGES_DIRECT)
   const [replyText, setReplyText] = useState('')
   const [showAttach, setShowAttach] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -537,52 +576,61 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        <p className="text-center text-xs text-gray-400">Hôm nay</p>
+        {localMessages.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
+            <p className="text-sm font-semibold text-gray-500">Chưa có tin nhắn nào</p>
+            <p className="text-xs text-gray-400">Gửi tin nhắn đầu tiên để bắt đầu trao đổi.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-center text-xs text-gray-400">Hôm nay</p>
 
-        {localMessages.map((msg) => {
-          const isTeacher = msg.senderRole === 'teacher'
-          const isPinned = pinnedMessages.has(msg.id)
-          return (
-            <div key={msg.id} className={`group flex gap-2 ${isTeacher ? 'flex-row-reverse' : ''}`}>
-              {!isTeacher && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-gray-700 mt-1">
-                  {initials(msg.senderName)}
-                </div>
-              )}
-              <div className="flex flex-col gap-0.5" style={{ maxWidth: '72%' }}>
-                {msg.messageType === 'text' && (
-                  <div
-                    className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                      isTeacher ? 'bg-black text-white rounded-tr-sm' : 'bg-gray-100 text-black rounded-tl-sm'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                )}
-                {msg.messageType === 'request' && msg.request && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-                    <div className="mb-1.5 flex items-center gap-1.5">
-                      <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700">
-                        {msg.request.type === 'medicine' ? 'Dặn thuốc' : 'Báo vắng'}
-                      </span>
+            {localMessages.map((msg) => {
+              const isTeacher = msg.senderRole === 'teacher'
+              const isPinned = pinnedMessages.has(msg.id)
+              return (
+                <div key={msg.id} className={`group flex gap-2 ${isTeacher ? 'flex-row-reverse' : ''}`}>
+                  {!isTeacher && (
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-gray-700 mt-1">
+                      {initials(msg.senderName)}
                     </div>
-                    <p className="text-xs text-gray-700">{msg.request.description}</p>
+                  )}
+                  <div className="flex flex-col gap-0.5" style={{ maxWidth: '72%' }}>
+                    {msg.messageType === 'text' && (
+                      <div
+                        className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                          isTeacher ? 'bg-black text-white rounded-tr-sm' : 'bg-gray-100 text-black rounded-tl-sm'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    )}
+                    {msg.messageType === 'request' && msg.request && (
+                      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="mb-1.5 flex items-center gap-1.5">
+                          <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700">
+                            {msg.request.type === 'medicine' ? 'Dặn thuốc' : 'Báo vắng'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-700">{msg.request.description}</p>
+                      </div>
+                    )}
+                    {/* Pin action — teacher only, only when not yet pinned.
+                        Unpinning is only available in the Pinned messages screen. */}
+                    {isTeacher && !isPinned && (
+                      <button
+                        onClick={() => onTogglePin(msg.id)}
+                        className="self-end text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-black"
+                      >
+                        Ghim
+                      </button>
+                    )}
                   </div>
-                )}
-                {/* Pin action — teacher only, only when not yet pinned.
-                    Unpinning is only available in the Pinned messages screen. */}
-                {isTeacher && !isPinned && (
-                  <button
-                    onClick={() => onTogglePin(msg.id)}
-                    className="self-end text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-black"
-                  >
-                    Ghim
-                  </button>
-                )}
-              </div>
-            </div>
-          )
-        })}
+                </div>
+              )
+            })}
+          </>
+        )}
         <div ref={bottomRef} />
       </div>
 

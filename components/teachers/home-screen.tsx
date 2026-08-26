@@ -147,6 +147,8 @@ interface TeachersHomeScreenProps {
   onNavigateToMessaging: () => void
   onNavigateToKetQuaHocTap: () => void
   onNavigateToPhieuBeNgoan: () => void
+  onNavigateToDanhSachHocSinh: () => void
+  onNavigateToHoatDong: () => void
 }
 
 export function TeachersHomeScreen({
@@ -155,6 +157,8 @@ export function TeachersHomeScreen({
   onNavigateToMessaging,
   onNavigateToKetQuaHocTap,
   onNavigateToPhieuBeNgoan,
+  onNavigateToDanhSachHocSinh,
+  onNavigateToHoatDong,
 }: TeachersHomeScreenProps) {
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('none' as CheckInStatus)
   const [checkInTime, setCheckInTime] = useState<string>()
@@ -293,6 +297,8 @@ export function TeachersHomeScreen({
                     id === 'trao-doi' ? onNavigateToMessaging :
                     id === 'ket-qua-hoc-tap' ? onNavigateToKetQuaHocTap :
                     id === 'phieu-be-ngoan' ? onNavigateToPhieuBeNgoan :
+                    id === 'danh-sach' ? onNavigateToDanhSachHocSinh :
+                    id === 'hoat-dong' ? onNavigateToHoatDong :
                     undefined
                   }
                   className="relative flex flex-col items-center gap-1.5 transition-opacity active:opacity-60"

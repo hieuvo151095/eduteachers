@@ -7,10 +7,19 @@ import { AttendanceApp } from '@/components/teachers/attendance'
 import { MessagingApp } from '@/components/teachers/messaging'
 import { KetQuaHocTapApp } from '@/components/teachers/ket-qua-hoc-tap'
 import { PhieuBeNgoanApp } from '@/components/teachers/phieu-be-ngoan'
+import { DanhSachHocSinhApp } from '@/components/teachers/danh-sach-hoc-sinh'
+import { HoatDongApp } from '@/components/teachers/hoat-dong'
 
 export default function Page() {
   const [screen, setScreen] = useState<
-    'home' | 'thuc-don' | 'attendance' | 'messaging' | 'ket-qua-hoc-tap' | 'phieu-be-ngoan'
+    | 'home'
+    | 'thuc-don'
+    | 'attendance'
+    | 'messaging'
+    | 'ket-qua-hoc-tap'
+    | 'phieu-be-ngoan'
+    | 'danh-sach-hoc-sinh'
+    | 'hoat-dong'
   >('home')
 
   return (
@@ -87,6 +96,8 @@ export default function Page() {
                 onNavigateToMessaging={() => setScreen('messaging')}
                 onNavigateToKetQuaHocTap={() => setScreen('ket-qua-hoc-tap')}
                 onNavigateToPhieuBeNgoan={() => setScreen('phieu-be-ngoan')}
+                onNavigateToDanhSachHocSinh={() => setScreen('danh-sach-hoc-sinh')}
+                onNavigateToHoatDong={() => setScreen('hoat-dong')}
               />
             )}
 
@@ -119,6 +130,12 @@ export default function Page() {
             )}
             {screen === 'phieu-be-ngoan' && (
               <PhieuBeNgoanApp onBack={() => setScreen('home')} />
+            )}
+            {screen === 'danh-sach-hoc-sinh' && (
+              <DanhSachHocSinhApp onBack={() => setScreen('home')} />
+            )}
+            {screen === 'hoat-dong' && (
+              <HoatDongApp onBack={() => setScreen('home')} />
             )}
           </div>
 

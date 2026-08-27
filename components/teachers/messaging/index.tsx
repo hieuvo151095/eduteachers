@@ -111,7 +111,17 @@ const MOCK_STUDENTS = Array.from({ length: 15 }, (_, i) => ({
     'Trịnh Văn Nam','Ngô Thị Hoa','Dương Quang Huy','Đinh Thị Lan','Cao Minh Tú',
   ][i],
   code: `${10000000 + i * 37123}`,
+  parentCount: [1, 2, 1, 3, 2, 1, 2, 1, 3, 2, 1, 2, 1, 3, 2][i],
 }))
+
+const MOCK_TEACHERS_ADD = [
+  { id: 'tadd-1', name: 'Cô Trần Thị Nguyên', subject: 'Địa lý' },
+  { id: 'tadd-2', name: 'Thầy Lưu Phương Thanh', subject: 'Quản trị viên' },
+  { id: 'tadd-3', name: 'Thầy Trần Văn Bình', subject: 'Toán' },
+  { id: 'tadd-4', name: 'Cô Lê Thị Cẩm', subject: 'Ngữ văn' },
+  { id: 'tadd-5', name: 'Cô Phạm Thị Dung', subject: 'Tiếng Anh' },
+  { id: 'tadd-6', name: 'Thầy Nguyễn Văn Hùng', subject: 'Lịch sử' },
+]
 
 // 18 mock parents (some students have 2 parents) — each tied to a student,
 // so they can never be removed directly from the "Người nhận" tab.
@@ -180,11 +190,25 @@ function GroupAvatar({ participantCount }: { participantCount: number }) {
   )
 }
 
+function SelectAllIcon({ checked }: { checked: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0" fill="none">
+      <rect x="1" y="1" width="14" height="14" rx="3"
+        fill={checked ? '#000' : 'none'}
+        stroke={checked ? '#000' : '#d1d5db'}
+        strokeWidth="1.5"
+      />
+      {checked && <path d="M4 8l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+    </svg>
+  )
+}
+
 // ─── Screen Navigation ─────────────────────────────────────────────────────
 
 type MessagingScreen =
   | { type: 'list' }
   | { type: 'direct'; conversationId: string }
+  | { type: 'direct-manage'; conversationId: string }
   | { type: 'group'; conversationId: string }
   | { type: 'group-pinned'; conversationId: string }
   | { type: 'create-group'; defaultClass: string }
@@ -199,9 +223,8 @@ const DYNAMIC_GROUPS: { conv: Conversation; systemMsg: string }[] = []
 
 export function MessagingApp({ onBack }: MessagingAppProps) {
   const [screen, setScreen] = useState<MessagingScreen>({ type: 'list' })
-  const [activeClassFilter, setActiveClassFilter] = useState('6A2')
+  const [activeClassFilter, setActiveClassFilter] = useState('')
   const [pinnedMessages, setPinnedMessages] = useState<Set<string>>(new Set(['gmsg-1']))
-  const [allParentsReadOnly, setAllParentsReadOnly] = useState(false)
   const [, forceUpdate] = useState(0)
 
   const handleTogglePinMessage = (messageId: string) => {
@@ -236,14 +259,21 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
           conversationId={screen.conversationId}
           pinnedMessages={pinnedMessages}
           onTogglePin={handleTogglePinMessage}
+          onManage={() => setScreen({ type: 'direct-manage', conversationId: screen.conversationId })}
           onBack={() => setScreen({ type: 'list' })}
+        />
+      )}
+
+      {screen.type === 'direct-manage' && (
+        <ScreenDirectManage
+          conversationId={screen.conversationId}
+          onBack={() => setScreen({ type: 'direct', conversationId: screen.conversationId })}
         />
       )}
 
       {screen.type === 'group' && (
         <ScreenGroupChat
           conversationId={screen.conversationId}
-          allParentsReadOnly={allParentsReadOnly}
           pinnedMessages={pinnedMessages}
           onTogglePin={handleTogglePinMessage}
           onViewPinned={() => setScreen({ type: 'group-pinned', conversationId: screen.conversationId })}
@@ -282,6 +312,22 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
               })
               forceUpdate((n) => n + 1)
               setScreen({ type: 'group', conversationId: newId })
+            } else if (result.kind === 'individual-teacher') {
+              const teacher = MOCK_TEACHERS_ADD.find((t) => t.id === result.teacherId)
+              DYNAMIC_GROUPS.push({
+                conv: {
+                  id: newId,
+                  type: 'direct',
+                  participantIds: ['teacher-1', result.teacherId],
+                  displayName: teacher?.name ?? 'Giáo viên',
+                  lastMessage: 'Trao đổi mới được tạo bởi Cô Nguyễn Hồng',
+                  lastMessageTime: nowStr,
+                  unreadCount: 0,
+                },
+                systemMsg: '',
+              })
+              forceUpdate((n) => n + 1)
+              setScreen({ type: 'direct', conversationId: newId })
             } else {
               const student = MOCK_STUDENTS.find((s) => s.id === result.studentId)
               DYNAMIC_GROUPS.push({
@@ -309,8 +355,6 @@ export function MessagingApp({ onBack }: MessagingAppProps) {
       {screen.type === 'group-manage' && (
         <ScreenGroupManage
           conversationId={screen.conversationId}
-          allParentsReadOnly={allParentsReadOnly}
-          onReadOnlyChange={setAllParentsReadOnly}
           onBack={() => setScreen({ type: 'group', conversationId: screen.conversationId })}
         />
       )}
@@ -336,14 +380,14 @@ function ScreenList({ activeClassFilter, onClassFilterChange, onSelectConversati
   const [page, setPage] = useState(1)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const filtered = getAllConversations().filter((c) => {
-    // Direct chats are searched by student + parent name (per the search
-    // placeholder); group chats fall back to their group display name.
-    const searchable = c.type === 'direct' ? `${c.studentName ?? ''} ${c.parentName ?? ''}` : c.displayName
-    const matchesSearch = searchable.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesClass = activeClassFilter === '' || c.classFilter === activeClassFilter
-    return matchesSearch && matchesClass
-  })
+  const filtered = getAllConversations()
+    .filter((c) => {
+      const searchable = c.type === 'direct' ? `${c.studentName ?? ''} ${c.parentName ?? ''}` : c.displayName
+      const matchesSearch = searchable.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesClass = activeClassFilter === '' || c.classFilter === activeClassFilter
+      return matchesSearch && matchesClass
+    })
+    .sort((a, b) => (b.unreadCount > 0 ? 1 : 0) - (a.unreadCount > 0 ? 1 : 0))
 
   // Quay lại trang 1 mỗi khi bộ lọc lớp/tìm kiếm đổi, tránh dừng ở 1 trang trống.
   useEffect(() => {
@@ -504,13 +548,12 @@ interface ScreenDirectChatProps {
   conversationId: string
   pinnedMessages: Set<string>
   onTogglePin: (messageId: string) => void
+  onManage: () => void
   onBack: () => void
 }
 
-function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack }: ScreenDirectChatProps) {
+function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onManage, onBack }: ScreenDirectChatProps) {
   const conversation = getAllConversations().find((c) => c.id === conversationId)
-  // Trao đổi "Cá nhân" mới tạo chưa từng có tin nhắn — chỉ các cuộc trò
-  // chuyện có sẵn (không nằm trong DYNAMIC_GROUPS) mới dùng lịch sử mẫu.
   const isNewConversation = DYNAMIC_GROUPS.some((g) => g.conv.id === conversationId)
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>(isNewConversation ? [] : MOCK_MESSAGES_DIRECT)
   const [replyText, setReplyText] = useState('')
@@ -547,7 +590,7 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
   return (
     <>
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
+      <div className="relative flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
         <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100">
           <ChevronLeft size={20} className="text-gray-600" />
         </button>
@@ -558,7 +601,12 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
             {conversation.classFilter && ` · Lớp ${conversation.classFilter}`}
           </p>
         </div>
-        {/* No overflow menu for 1:1 chats — "Cài đặt" only applies to groups */}
+        <button
+          onClick={onManage}
+          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
+        >
+          <MoreVertical size={16} className="text-gray-600" />
+        </button>
       </div>
 
       {/* Pinned strip */}
@@ -685,7 +733,6 @@ function ScreenDirectChat({ conversationId, pinnedMessages, onTogglePin, onBack 
 
 interface ScreenGroupChatProps {
   conversationId: string
-  allParentsReadOnly: boolean
   pinnedMessages: Set<string>
   onTogglePin: (id: string) => void
   onViewPinned: () => void
@@ -695,7 +742,6 @@ interface ScreenGroupChatProps {
 
 function ScreenGroupChat({
   conversationId,
-  allParentsReadOnly,
   pinnedMessages,
   onTogglePin,
   onViewPinned,
@@ -867,7 +913,7 @@ function ScreenGroupChat({
         <input
           ref={inputRef}
           type="text"
-          placeholder={allParentsReadOnly ? 'Chỉ giáo viên được gửi tin nhắn…' : 'Nhắn tin…'}
+          placeholder="Nhắn tin…"
           value={msgText}
           onChange={(e) => setMsgText(e.target.value)}
           onKeyDown={(e) => {
@@ -1037,45 +1083,83 @@ type ConversationKind = 'individual' | 'group'
 
 interface ScreenCreateGroupProps {
   defaultClass: string
-  onCreated: (result: { kind: 'individual'; studentId: string } | { kind: 'group'; groupName: string; studentIds: string[] }) => void
+  onCreated: (result:
+    | { kind: 'individual'; studentId: string }
+    | { kind: 'individual-teacher'; teacherId: string }
+    | { kind: 'group'; groupName: string; studentIds: string[] }
+  ) => void
   onBack: () => void
 }
 
 function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGroupProps) {
-  const [kind, setKind] = useState<ConversationKind>('group')
+  const [kind, setKind] = useState<ConversationKind>('individual')
   const [groupName, setGroupName] = useState('')
   const [selectedClass, setSelectedClass] = useState(defaultClass || '6A2')
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
+  const [selectedTeachers, setSelectedTeachers] = useState<Set<string>>(new Set())
   const [showClassSheet, setShowClassSheet] = useState(false)
   const [showStudentSheet, setShowStudentSheet] = useState(false)
   const [studentSearch, setStudentSearch] = useState('')
+  const [studentPickerTab, setStudentPickerTab] = useState<'hoc-sinh' | 'giao-vien'>('hoc-sinh')
   const [showConfirm, setShowConfirm] = useState(false)
 
+  const totalSelected = selectedStudents.size + selectedTeachers.size
   const isValid =
     kind === 'individual'
-      ? selectedStudents.size === 1
-      : groupName.trim().length > 0 && selectedStudents.size >= 2
+      ? selectedStudents.size === 1          // student is compulsory; teachers are optional
+      : groupName.trim().length > 0 && selectedStudents.size >= 1  // need name + at least 1 student
 
   const filteredStudents = MOCK_STUDENTS.filter((s) =>
     s.name.toLowerCase().includes(studentSearch.toLowerCase())
   )
+  const filteredTeachers = MOCK_TEACHERS_ADD.filter((t) =>
+    t.name.toLowerCase().includes(studentSearch.toLowerCase())
+  )
 
   const toggleStudent = (id: string) => {
-    setSelectedStudents((prev) => {
-      // A 1:1 conversation only ever has one recipient — picking a new
-      // student replaces the previous selection instead of adding to it.
-      if (kind === 'individual') {
-        return prev.has(id) ? new Set() : new Set([id])
-      }
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+    if (kind === 'individual') {
+      // Radio: only one student allowed; teachers stay untouched
+      setSelectedStudents((prev) => prev.has(id) ? new Set() : new Set([id]))
+    } else {
+      setSelectedStudents((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    }
+  }
+
+  const toggleTeacher = (id: string) => {
+    // Checkbox in both modes: multiple teachers always allowed; student unaffected
+    setSelectedTeachers((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  const allFilteredTeachersSelected =
+    filteredTeachers.length > 0 && filteredTeachers.every((t) => selectedTeachers.has(t.id))
+
+  const toggleAllTeachers = () => {
+    if (allFilteredTeachersSelected) {
+      setSelectedTeachers((prev) => {
+        const n = new Set(prev); filteredTeachers.forEach((t) => n.delete(t.id)); return n
+      })
+    } else {
+      setSelectedTeachers((prev) => new Set([...prev, ...filteredTeachers.map((t) => t.id)]))
+    }
+  }
+
+  const allFilteredStudentsSelected =
+    kind === 'group' && filteredStudents.length > 0 && filteredStudents.every((s) => selectedStudents.has(s.id))
+
+  const toggleAllStudents = () => {
+    if (allFilteredStudentsSelected) {
+      setSelectedStudents((prev) => {
+        const n = new Set(prev); filteredStudents.forEach((s) => n.delete(s.id)); return n
+      })
+    } else {
+      setSelectedStudents((prev) => new Set([...prev, ...filteredStudents.map((s) => s.id)]))
+    }
   }
 
   const handleChangeKind = (next: ConversationKind) => {
     setKind(next)
     setSelectedStudents(new Set())
+    setSelectedTeachers(new Set())
   }
 
   const handleCreate = () => {
@@ -1157,35 +1241,37 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
           </button>
         </div>
 
-        {/* Chọn học sinh */}
+        {/* Chọn học sinh / giáo viên */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Chọn học sinh
+            Chọn thành viên
             <span className="ml-1 font-normal normal-case text-gray-400">
-              {kind === 'individual' ? '(chỉ được chọn 1 học sinh)' : '(chọn ít nhất 2)'}
+              {kind === 'individual' ? '(1 học sinh bắt buộc, giáo viên tuỳ chọn)' : '(ít nhất 1 học sinh)'}
             </span>
           </label>
           <button
-            onClick={() => setShowStudentSheet(true)}
+            onClick={() => { setStudentPickerTab('hoc-sinh'); setStudentSearch(''); setShowStudentSheet(true) }}
             className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm transition-colors hover:bg-gray-100"
           >
-            <span className={selectedStudents.size > 0 ? 'font-semibold text-black' : 'text-gray-400'}>
-              {selectedStudents.size > 0
-                ? `${selectedStudents.size} học sinh đã chọn`
-                : 'Chọn học sinh…'}
+            <span className={totalSelected > 0 ? 'font-semibold text-black' : 'text-gray-400'}>
+              {totalSelected > 0 ? `${totalSelected} thành viên đã chọn` : 'Chọn học sinh hoặc giáo viên…'}
             </span>
             <ChevronRight size={16} className="text-gray-400" />
           </button>
 
           {/* Selected chips */}
-          {selectedStudents.size > 0 && (
+          {totalSelected > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {MOCK_STUDENTS.filter((s) => selectedStudents.has(s.id)).map((s) => (
                 <div key={s.id} className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1">
                   <span className="text-xs font-semibold text-black">{s.name.split(' ').pop()}</span>
-                  <button onClick={() => toggleStudent(s.id)} className="text-gray-400 hover:text-black">
-                    <X size={11} />
-                  </button>
+                  <button onClick={() => toggleStudent(s.id)} className="text-gray-400 hover:text-black"><X size={11} /></button>
+                </div>
+              ))}
+              {MOCK_TEACHERS_ADD.filter((t) => selectedTeachers.has(t.id)).map((t) => (
+                <div key={t.id} className="flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1">
+                  <span className="text-xs font-semibold text-blue-800">{t.name.split(' ').pop()}</span>
+                  <button onClick={() => toggleTeacher(t.id)} className="text-blue-400 hover:text-blue-700"><X size={11} /></button>
                 </div>
               ))}
             </div>
@@ -1236,22 +1322,41 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
         </div>
       )}
 
-      {/* Bottom sheet — Chọn học sinh */}
+      {/* Bottom sheet — Chọn thành viên (Học sinh / Giáo viên) */}
       {showStudentSheet && (
         <div className="absolute inset-0 z-30 flex items-end">
           <button className="absolute inset-0 bg-black/40" onClick={() => setShowStudentSheet(false)} aria-label="Đóng" />
-          <div className="relative flex max-h-[75%] w-full flex-col rounded-t-3xl bg-white">
+          <div className="relative flex max-h-[78%] w-full flex-col rounded-t-3xl bg-white">
             <div className="shrink-0 px-5 pt-5 pb-3">
               <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
               <button onClick={() => setShowStudentSheet(false)} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
                 <X size={16} className="text-gray-600" />
               </button>
-              <h3 className="mb-3 text-base font-bold text-black">Chọn học sinh</h3>
+              <h3 className="mb-3 text-base font-bold text-black">Chọn thành viên</h3>
+
+              {/* Tab switcher */}
+              <div className="mb-3 flex rounded-xl bg-gray-100 p-1">
+                {([
+                  { id: 'hoc-sinh', label: 'Học sinh' },
+                  { id: 'giao-vien', label: 'Giáo viên' },
+                ] as { id: 'hoc-sinh' | 'giao-vien'; label: string }[]).map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => { setStudentPickerTab(id); setStudentSearch('') }}
+                    className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                      studentPickerTab === id ? 'bg-white text-black shadow-sm' : 'text-gray-500'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               <div className="relative mb-1">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Tìm học sinh…"
+                  placeholder={studentPickerTab === 'hoc-sinh' ? 'Tìm học sinh…' : 'Tìm giáo viên…'}
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400"
@@ -1260,35 +1365,87 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
               </div>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100 px-5">
-              {filteredStudents.map((s) => (
-                <label key={s.id} className="flex cursor-pointer items-center gap-3 py-3">
-                  <input
-                    type={kind === 'individual' ? 'radio' : 'checkbox'}
-                    checked={selectedStudents.has(s.id)}
-                    onChange={() => toggleStudent(s.id)}
-                    className="h-4 w-4 accent-black"
-                  />
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
-                    {initials(s.name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-black">{s.name}</p>
-                    <p className="text-xs text-gray-400">{s.code}</p>
-                  </div>
-                  {selectedStudents.has(s.id) && (
-                    <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center">
-                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 8l4 4 8-8" /></svg>
-                    </div>
+              {studentPickerTab === 'hoc-sinh' && (
+                <>
+                  {/* Select-all row — only in group mode (individual uses radio) */}
+                  {kind === 'group' && filteredStudents.length > 0 && (
+                    <button
+                      onClick={toggleAllStudents}
+                      className="flex w-full items-center gap-3 py-2.5"
+                    >
+                      <SelectAllIcon checked={allFilteredStudentsSelected} />
+                      <span className="text-xs text-gray-500">Chọn tất cả</span>
+                    </button>
                   )}
-                </label>
-              ))}
+                  {filteredStudents.map((s) => (
+                    <label key={s.id} className="flex cursor-pointer items-center gap-3 py-3">
+                      <input
+                        type={kind === 'individual' ? 'radio' : 'checkbox'}
+                        checked={selectedStudents.has(s.id)}
+                        onChange={() => toggleStudent(s.id)}
+                        className="h-4 w-4 accent-black"
+                      />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                        {initials(s.name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-black">{s.name}</p>
+                        <p className="text-xs text-gray-400">{s.code}</p>
+                        <p className="text-xs text-gray-400">Liên kết với {s.parentCount} phụ huynh</p>
+                      </div>
+                      {selectedStudents.has(s.id) && (
+                        <div className="h-5 w-5 shrink-0 rounded-full bg-black flex items-center justify-center">
+                          <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 8l4 4 8-8" /></svg>
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </>
+              )}
+              {studentPickerTab === 'giao-vien' && (
+                <>
+                  {/* Select-all row — above the teacher checkboxes */}
+                  {filteredTeachers.length > 0 && (
+                    <button
+                      onClick={toggleAllTeachers}
+                      className="flex w-full items-center gap-3 py-2.5"
+                    >
+                      <SelectAllIcon checked={allFilteredTeachersSelected} />
+                      <span className="text-xs text-gray-500">Chọn tất cả</span>
+                    </button>
+                  )}
+                  {filteredTeachers.map((t) => (
+                    <label key={t.id} className="flex cursor-pointer items-center gap-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedTeachers.has(t.id)}
+                        onChange={() => toggleTeacher(t.id)}
+                        className="h-4 w-4 accent-black"
+                      />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                        {initials(t.name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-black">{t.name}</p>
+                        <p className="text-xs text-gray-400">{t.subject}</p>
+                      </div>
+                      {selectedTeachers.has(t.id) && (
+                        <div className="h-5 w-5 shrink-0 rounded-full bg-black flex items-center justify-center">
+                          <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 8l4 4 8-8" /></svg>
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </>
+              )}
             </div>
             <div className="shrink-0 border-t border-gray-100 px-5 py-3">
               <button
                 onClick={() => setShowStudentSheet(false)}
-                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+                disabled={selectedStudents.size === 0}
+                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-30"
               >
-                Xác nhận ({selectedStudents.size} học sinh)
+                Xác nhận ({totalSelected} thành viên)
               </button>
             </div>
           </div>
@@ -1312,7 +1469,7 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
               Lớp: <span className="font-semibold text-black">Lớp {selectedClass}</span>
             </p>
             <p className="mb-5 text-sm text-gray-600">
-              Thành viên: <span className="font-semibold text-black">{selectedStudents.size} học sinh</span>
+              Thành viên: <span className="font-semibold text-black">{totalSelected} người</span>
             </p>
             <div className="flex gap-3">
               <button
@@ -1339,28 +1496,20 @@ function ScreenCreateGroup({ defaultClass, onCreated, onBack }: ScreenCreateGrou
 
 interface ScreenGroupManageProps {
   conversationId: string
-  allParentsReadOnly: boolean
-  onReadOnlyChange: (value: boolean) => void
   onBack: () => void
 }
 
 type DeleteTarget = { kind: 'student' | 'staff'; id: string; name: string }
 
-function ScreenGroupManage({
-  allParentsReadOnly,
-  onReadOnlyChange,
-  onBack,
-}: ScreenGroupManageProps) {
+function ScreenGroupManage({ onBack }: ScreenGroupManageProps) {
   const [tab, setTab] = useState<'students' | 'recipients'>('students')
   const [showAddSheet, setShowAddSheet] = useState(false)
-  const [addMode, setAddMode] = useState<'student' | 'teacher'>('student')
+  const [addSearch, setAddSearch] = useState('')
+  const [addSelectedIds, setAddSelectedIds] = useState<Set<string>>(new Set())
 
-  // Removal is local to this screen — nothing else in the prototype reads
-  // group membership, so there's no need to lift it further up.
   const [removedStudentIds, setRemovedStudentIds] = useState<Set<string>>(new Set())
   const [removedStaffIds, setRemovedStaffIds] = useState<Set<string>>(new Set())
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
-  const [showReadOnlyConfirm, setShowReadOnlyConfirm] = useState(false)
 
   const visibleStudents = MOCK_STUDENTS.filter((s) => !removedStudentIds.has(s.id))
   // Removing a student cascades: any parent linked to that student is no
@@ -1382,10 +1531,15 @@ function ScreenGroupManage({
     setDeleteTarget(null)
   }
 
-  const handleConfirmReadOnlyToggle = () => {
-    onReadOnlyChange(!allParentsReadOnly)
-    setShowReadOnlyConfirm(false)
-  }
+  const closeAddSheet = () => { setShowAddSheet(false); setAddSearch(''); setAddSelectedIds(new Set()) }
+
+  const addFilteredStudents = MOCK_STUDENTS.filter((s) => s.name.toLowerCase().includes(addSearch.toLowerCase()))
+  const addFilteredTeachers = MOCK_TEACHERS_ADD.filter((t) => t.name.toLowerCase().includes(addSearch.toLowerCase()))
+  const allAddIds = new Set([...addFilteredStudents.map((s) => s.id), ...addFilteredTeachers.map((t) => t.id)])
+  const allAddSelected = allAddIds.size > 0 && [...allAddIds].every((id) => addSelectedIds.has(id))
+
+  const toggleAddId = (id: string) =>
+    setAddSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   return (
     <>
@@ -1398,37 +1552,14 @@ function ScreenGroupManage({
       </div>
 
       <div className="flex-1 overflow-y-auto pb-24">
-        {/* Toggles */}
-        <div className="px-4 py-4 space-y-4">
-          {/* Admin row */}
-          <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
-              {initials('Cô Nguyễn Hồng')}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-black">Cô Nguyễn Hồng</p>
-              <p className="text-xs text-gray-500">Quản trị nhóm</p>
-            </div>
+        {/* Admin row */}
+        <div className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+            {initials('Cô Nguyễn Hồng')}
           </div>
-
-          {/* Read-only toggle */}
-          <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-black">Chỉ Giáo viên được gửi tin nhắn</p>
-              <p className="text-xs text-gray-500">Khoá phụ huynh gửi tin nhắn trong nhóm</p>
-            </div>
-            <button
-              onClick={() => setShowReadOnlyConfirm(true)}
-              className={`relative ml-4 h-6 w-11 shrink-0 rounded-full transition-colors ${
-                allParentsReadOnly ? 'bg-black' : 'bg-gray-300'
-              }`}
-            >
-              <div
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  allParentsReadOnly ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-black">Cô Nguyễn Hồng</p>
+            <p className="text-xs text-gray-500">Quản trị nhóm</p>
           </div>
         </div>
 
@@ -1519,54 +1650,71 @@ function ScreenGroupManage({
       {/* Add member bottom sheet */}
       {showAddSheet && (
         <div className="absolute inset-0 z-30 flex items-end">
-          <button className="absolute inset-0 bg-black/40" onClick={() => setShowAddSheet(false)} aria-label="Đóng" />
-          <div className="relative w-full rounded-t-3xl bg-white px-5 pt-5 pb-8">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
-            <button
-              onClick={() => setShowAddSheet(false)}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100"
-            >
-              <X size={16} className="text-gray-600" />
-            </button>
-            <h3 className="mb-4 text-base font-bold text-black">Thêm thành viên</h3>
-
-            {/* Mode tabs */}
-            <div className="mb-4 flex gap-2">
-              {(['student', 'teacher'] as const).map((m) => (
+          <button className="absolute inset-0 bg-black/40" onClick={closeAddSheet} aria-label="Đóng" />
+          <div className="relative flex max-h-[80%] w-full flex-col rounded-t-3xl bg-white">
+            <div className="shrink-0 px-5 pt-5 pb-3">
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
+              <button onClick={closeAddSheet} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                <X size={16} className="text-gray-600" />
+              </button>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-base font-bold text-black">Thêm thành viên</h3>
                 <button
-                  key={m}
-                  onClick={() => setAddMode(m)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                    addMode === m ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  onClick={() => setAddSelectedIds(allAddSelected ? new Set() : new Set(allAddIds))}
+                  className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
                 >
-                  {m === 'student' ? 'Học sinh' : 'Giáo viên'}
+                  Tất cả
                 </button>
+              </div>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm học sinh hoặc giáo viên…"
+                  value={addSearch}
+                  onChange={(e) => setAddSearch(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5">
+              <p className="py-2 text-[10px] font-bold uppercase tracking-wide text-gray-400">Học sinh</p>
+              {addFilteredStudents.map((s) => (
+                <label key={s.id} className="flex cursor-pointer items-center gap-3 border-b border-gray-50 py-2.5">
+                  <input type="checkbox" checked={addSelectedIds.has(s.id)} onChange={() => toggleAddId(s.id)} className="h-4 w-4 accent-black" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                    {initials(s.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-black">{s.name}</p>
+                    <p className="text-xs text-gray-400">{s.code}</p>
+                  </div>
+                </label>
+              ))}
+              <p className="pb-2 pt-4 text-[10px] font-bold uppercase tracking-wide text-gray-400">Giáo viên</p>
+              {addFilteredTeachers.map((t) => (
+                <label key={t.id} className="flex cursor-pointer items-center gap-3 border-b border-gray-50 py-2.5">
+                  <input type="checkbox" checked={addSelectedIds.has(t.id)} onChange={() => toggleAddId(t.id)} className="h-4 w-4 accent-black" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                    {initials(t.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-black">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.subject}</p>
+                  </div>
+                </label>
               ))}
             </div>
-
-            <p className="mb-3 text-xs text-gray-500">
-              {addMode === 'student'
-                ? 'Nhập mã học sinh hoặc tên để thêm vào nhóm.'
-                : 'Nhập tên giáo viên để thêm đồng quản trị nhóm.'}
-            </p>
-
-            <div className="relative mb-4">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder={addMode === 'student' ? 'Tên hoặc mã học sinh…' : 'Tên giáo viên…'}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400"
-                autoFocus
-              />
+            <div className="shrink-0 border-t border-gray-100 px-5 py-3">
+              <button
+                onClick={closeAddSheet}
+                disabled={addSelectedIds.size === 0}
+                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-30"
+              >
+                Thêm vào nhóm{addSelectedIds.size > 0 ? ` (${addSelectedIds.size})` : ''}
+              </button>
             </div>
-
-            <button
-              onClick={() => setShowAddSheet(false)}
-              className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
-            >
-              Thêm vào nhóm
-            </button>
           </div>
         </div>
       )}
@@ -1604,30 +1752,147 @@ function ScreenGroupManage({
         </div>
       )}
 
-      {/* Read-only toggle confirmation pop-up */}
-      {showReadOnlyConfirm && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="mb-2 text-base font-bold text-black">
-              {allParentsReadOnly ? 'Bỏ giới hạn gửi tin nhắn?' : 'Chỉ giáo viên được gửi tin nhắn?'}
-            </h3>
-            <p className="mb-1 text-sm text-gray-600">
-              {allParentsReadOnly
-                ? 'Phụ huynh sẽ có thể gửi tin nhắn trong nhóm trở lại.'
-                : 'Phụ huynh sẽ không thể gửi tin nhắn trong nhóm cho đến khi bạn tắt chế độ này.'}
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => setShowReadOnlyConfirm(false)}
-                className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                Huỷ
+    </>
+  )
+}
+
+// ─── SCREEN 7: Direct Chat Manage / Settings ──────────────────────────────────
+
+function ScreenDirectManage({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
+  const conv = getAllConversations().find((c) => c.id === conversationId)
+  const [tab, setTab] = useState<'students' | 'recipients'>('students')
+  const [showAddSheet, setShowAddSheet] = useState(false)
+  const [addSearch, setAddSearch] = useState('')
+  const [addSelectedIds, setAddSelectedIds] = useState<Set<string>>(new Set())
+
+  const closeAddSheet = () => { setShowAddSheet(false); setAddSearch(''); setAddSelectedIds(new Set()) }
+
+  const addFilteredTeachers = MOCK_TEACHERS_ADD.filter((t) => t.name.toLowerCase().includes(addSearch.toLowerCase()))
+  const toggleAddId = (id: string) =>
+    setAddSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  const studentName = conv?.studentName ?? conv?.displayName ?? '—'
+  const parentName = conv?.parentName ?? '—'
+  const linkedStudent = MOCK_STUDENTS.find((s) => s.name === studentName)
+  const studentCode = linkedStudent?.code ?? ''
+
+  return (
+    <>
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
+        <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100">
+          <ChevronLeft size={20} className="text-gray-600" />
+        </button>
+        <h2 className="flex-1 font-bold text-black text-sm">Cài đặt nhóm</h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pb-24">
+        {/* Admin row */}
+        <div className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+            {initials('Cô Nguyễn Hồng')}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-black">Cô Nguyễn Hồng</p>
+            <p className="text-xs text-gray-500">Quản trị nhóm</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-4 flex border-b border-gray-100 px-4">
+          {(['students', 'recipients'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                tab === t ? 'border-b-2 border-black text-black' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {t === 'students' ? 'Học sinh (1)' : 'Người nhận (1)'}
+            </button>
+          ))}
+        </div>
+
+        <div className="divide-y divide-gray-100 px-4">
+          {tab === 'students' && (
+            <div className="flex items-center gap-3 py-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                {initials(studentName)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-semibold text-black">{studentName}</p>
+                {studentCode && <p className="text-xs text-gray-400">{studentCode}</p>}
+              </div>
+            </div>
+          )}
+
+          {tab === 'recipients' && (
+            <div className="flex items-center gap-3 py-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                {initials(parentName !== '—' ? parentName : 'P')}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-semibold text-black">{parentName}</p>
+                <p className="text-xs text-gray-400">PH bé {studentName.split(' ').slice(-2).join(' ')}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky footer */}
+      <div className="absolute bottom-0 inset-x-0 border-t border-gray-100 bg-white px-4 py-3">
+        <button
+          onClick={() => setShowAddSheet(true)}
+          className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+        >
+          + Thêm thành viên
+        </button>
+      </div>
+
+      {/* Add member bottom sheet */}
+      {showAddSheet && (
+        <div className="absolute inset-0 z-30 flex items-end">
+          <button className="absolute inset-0 bg-black/40" onClick={closeAddSheet} aria-label="Đóng" />
+          <div className="relative flex max-h-[80%] w-full flex-col rounded-t-3xl bg-white">
+            <div className="shrink-0 px-5 pt-5 pb-3">
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
+              <button onClick={closeAddSheet} className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                <X size={16} className="text-gray-600" />
               </button>
+              <h3 className="mb-3 text-base font-bold text-black">Thêm giáo viên</h3>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm giáo viên…"
+                  value={addSearch}
+                  onChange={(e) => setAddSearch(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-black [color-scheme:light] outline-none focus:border-gray-400"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5">
+              <p className="py-2 text-[10px] font-bold uppercase tracking-wide text-gray-400">Giáo viên &amp; Quản trị viên</p>
+              {addFilteredTeachers.map((t) => (
+                <label key={t.id} className="flex cursor-pointer items-center gap-3 border-b border-gray-50 py-2.5">
+                  <input type="checkbox" checked={addSelectedIds.has(t.id)} onChange={() => toggleAddId(t.id)} className="h-4 w-4 accent-black" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">{initials(t.name)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-black">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.subject}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-gray-100 px-5 py-3">
               <button
-                onClick={handleConfirmReadOnlyToggle}
-                className="flex-1 rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+                onClick={closeAddSheet}
+                disabled={addSelectedIds.size === 0}
+                className="w-full rounded-xl bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-30"
               >
-                Xác nhận
+                Thêm vào nhóm{addSelectedIds.size > 0 ? ` (${addSelectedIds.size})` : ''}
               </button>
             </div>
           </div>
